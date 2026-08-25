@@ -1,0 +1,60 @@
+{
+  "name": "toan-vui-cap1",
+  "version": "1.0.11",
+  "description": "Game toán học vui nhộn dành cho học sinh cấp 1 (lớp 1-5)",
+  "main": "main.js",
+  "author": "Đinh Thi Ai",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win nsis",
+    "dist:publish": "electron-builder --win nsis --publish always"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.dinhthiai.toanvuicap1",
+    "productName": "Toan Vui Cap 1",
+    "artifactName": "Toan Vui Cap 1 Setup V11.${ext}",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "dinhvanthiarena-jpg",
+      "repo": "toan-vui-cap1"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "license-core.js",
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Toan Vui Cap 1"
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  }
+}
