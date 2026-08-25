@@ -216,6 +216,15 @@ button:focus-visible,
   box-shadow: var(--gloss-shadow-sm);
 }
 
+.app-version {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--color-on-bg-muted);
+  opacity: 0.7;
+  margin: 14px 0 0;
+}
+
 .home-actions {
   display: flex;
   gap: 18px;

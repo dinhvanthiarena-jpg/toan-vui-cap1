@@ -967,6 +967,10 @@
 
   /* init */
   (async function boot() {
+    if (window.electronAPI && window.electronAPI.getAppVersion) {
+      const version = await window.electronAPI.getAppVersion();
+      $('appVersion').textContent = `Phiên bản ${version}`;
+    }
     if (window.electronAPI && window.electronAPI.getLicenseStatus) {
       const status = await window.electronAPI.getLicenseStatus();
       if (status.isExpired) {
