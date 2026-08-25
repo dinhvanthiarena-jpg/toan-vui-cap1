@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, shell, clipboard } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, shell, clipboard, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
@@ -194,6 +194,77 @@ ipcMain.handle('capture-result-screenshot', async (event, rect) => {
   } catch (e) {
     return { success: false };
   }
+});
+
+const DEFAULT_TEACHER_NAME = 'Thầy Đinh Thi Ai';
+let settingsFilePath = null;
+
+function getSettingsFilePath() {
+  if (!settingsFilePath) settingsFilePath = path.join(app.getPath('userData'), 'game-settings.json');
+  return settingsFilePath;
+}
+
+function getSettings() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(getSettingsFilePath(), 'utf8'));
+    return {
+      teacherName: typeof raw.teacherName === 'string' && raw.teacherName.trim() ? raw.teacherName.trim().slice(0, 60) : DEFAULT_TEACHER_NAME,
+      avatarDataUrl: typeof raw.avatarDataUrl === 'string' ? raw.avatarDataUrl : null,
+    };
+  } catch (e) {
+    return { teacherName: DEFAULT_TEACHER_NAME, avatarDataUrl: null };
+  }
+}
+
+function saveSettings(settings) {
+  try {
+    fs.writeFileSync(getSettingsFilePath(), JSON.stringify(settings), 'utf8');
+  } catch (e) {
+    // best-effort
+  }
+}
+
+ipcMain.handle('settings:get', () => getSettings());
+
+ipcMain.handle('settings:save-name', (event, name) => {
+  const settings = getSettings();
+  settings.teacherName = (typeof name === 'string' && name.trim()) ? name.trim().slice(0, 60) : DEFAULT_TEACHER_NAME;
+  saveSettings(settings);
+  return settings;
+});
+
+ipcMain.handle('settings:pick-avatar', async (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const result = await dialog.showOpenDialog(win, {
+    title: 'Chọn ảnh đại diện',
+    filters: [{ name: 'Hình ảnh', extensions: ['png', 'jpg', 'jpeg', 'webp'] }],
+    properties: ['openFile'],
+  });
+  if (result.canceled || !result.filePaths[0]) return { success: false };
+  try {
+    const filePath = result.filePaths[0];
+    const ext = path.extname(filePath).slice(1).toLowerCase();
+    const mime = ext === 'jpg' ? 'jpeg' : ext;
+    const data = fs.readFileSync(filePath);
+    const dataUrl = `data:image/${mime};base64,${data.toString('base64')}`;
+    return { success: true, dataUrl };
+  } catch (e) {
+    return { success: false };
+  }
+});
+
+ipcMain.handle('settings:save-avatar', (event, dataUrl) => {
+  const settings = getSettings();
+  settings.avatarDataUrl = typeof dataUrl === 'string' ? dataUrl : null;
+  saveSettings(settings);
+  return settings;
+});
+
+ipcMain.handle('settings:reset-avatar', () => {
+  const settings = getSettings();
+  settings.avatarDataUrl = null;
+  saveSettings(settings);
+  return settings;
 });
 
 ipcMain.handle('license:get-status', () => computeLicenseStatus());

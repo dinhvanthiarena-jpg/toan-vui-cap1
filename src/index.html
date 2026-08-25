@@ -13,11 +13,15 @@
     <svg id="soundIconOff" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" hidden><path fill="currentColor" d="M4 9v6h4l5 5V4L8 9H4z"/><path fill="currentColor" d="M19.36 6.64l-1.42 1.42L19.36 9.5l1.42-1.42-1.42-1.44zm-2.83 2.83L15.11 8.05 13.7 9.46l1.42 1.41-1.42 1.42 1.41 1.41 1.42-1.42 1.42 1.42 1.41-1.41-1.42-1.42 1.42-1.42-1.41-1.41z"/></svg>
   </button>
 
+  <button id="btnOpenSettings" class="icon-btn top-fixed settings-btn" aria-label="Tuỳ chỉnh giáo viên" title="Tuỳ chỉnh giáo viên">
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.5.5 0 0 0 .12-.61l-1.92-3.32a.5.5 0 0 0-.58-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.5.5 0 0 0-.58.22L2.71 8.87a.5.5 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94L2.81 14.52a.5.5 0 0 0-.12.61l1.92 3.32c.14.24.42.34.68.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.28.27.42.5.42h3.84c.24 0 .46-.14.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.26.1.54 0 .68-.22l1.92-3.32a.5.5 0 0 0-.12-.61l-2.02-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/></svg>
+  </button>
+
   <!-- SCREEN: LICENSE -->
   <section id="screen-license" class="screen">
     <div class="home-wrap">
       <div class="mascot-hero" id="mascotLicense" aria-hidden="true"></div>
-      <p class="mascot-name">Thầy Đinh Thi Ai</p>
+      <p class="mascot-name js-teacher-name">Thầy Đinh Thi Ai</p>
       <h1 class="license-title" id="licenseTitle">Cần kích hoạt</h1>
       <p class="license-desc" id="licenseDesc">Vui lòng liên hệ Thầy Đinh Thi Ai để nhận mã key, sau đó nhập vào bên dưới để tiếp tục chơi nhé!</p>
       <div class="license-form">
@@ -50,7 +54,7 @@
   <section id="screen-home" class="screen active">
     <div class="home-wrap">
       <div class="mascot-hero" id="mascotHome" aria-hidden="true"></div>
-      <p class="mascot-name">Thầy Đinh Thi Ai</p>
+      <p class="mascot-name js-teacher-name">Thầy Đinh Thi Ai</p>
       <h1 class="title-hero">TOÁN VUI<br/><span>CẤP 1</span></h1>
       <p class="subtitle">Chơi mà học – Học mà chơi!</p>
       <p class="update-badge" id="updateBadge" hidden></p>
@@ -68,7 +72,7 @@
     </div>
 
     <div class="contact-footer">
-      <p class="contact-line"><strong>Thầy Đinh Thi Ai</strong> — Chuyên đào tạo ứng dụng AI</p>
+      <p class="contact-line">Một sản phẩm của <strong>Thầy Đinh Thi Ai</strong> kính tặng</p>
       <div class="contact-actions">
         <span class="contact-phone">
           <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.5.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.5.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
@@ -167,7 +171,7 @@
 
     <div class="game-stage">
       <div class="mascot-game" id="mascotGame" aria-hidden="true"></div>
-      <p class="mascot-name mascot-name-game">Thầy Đinh Thi Ai</p>
+      <p class="mascot-name mascot-name-game js-teacher-name">Thầy Đinh Thi Ai</p>
 
       <div class="streak-badge" id="streakBadge" hidden>
         <span id="streakVal">0</span> câu liên tiếp!
@@ -198,7 +202,7 @@
   <section id="screen-result" class="screen">
     <div class="result-wrap">
       <div class="mascot-result" id="mascotResult" aria-hidden="true"></div>
-      <p class="mascot-name">Thầy Đinh Thi Ai</p>
+      <p class="mascot-name js-teacher-name">Thầy Đinh Thi Ai</p>
       <h2 class="result-title" id="resultTitle">Giỏi quá!</h2>
       <div class="stars-row" id="starsRow">
         <span class="star" data-i="1">★</span>
@@ -261,9 +265,9 @@
     </div>
     <div class="modal-box break-box">
       <div class="break-mascot" id="mascotBreak" aria-hidden="true"></div>
-      <p class="mascot-name mascot-name-break">Thầy Đinh Thi Ai</p>
+      <p class="mascot-name mascot-name-break js-teacher-name">Thầy Đinh Thi Ai</p>
       <span class="break-tag">Giải lao vui!</span>
-      <h2 class="break-heading">Đố vui cùng Thầy Đinh Thi Ai</h2>
+      <h2 class="break-heading" id="breakHeading">Đố vui cùng Thầy Đinh Thi Ai</h2>
       <p class="break-joke-q" id="breakJokeQ">Câu đố...</p>
       <p class="break-joke-a" id="breakJokeA" hidden></p>
       <button class="btn btn-secondary btn-lg" id="btnRevealJoke">Bật mí đáp án!</button>
@@ -280,6 +284,31 @@
       <h2>Chọn trình duyệt</h2>
       <p class="browser-picker-desc" id="browserPickerDesc">Mở trang chia sẻ Facebook bằng trình duyệt nào?</p>
       <div class="browser-picker-list" id="browserPickerList"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: TEACHER SETTINGS -->
+  <div class="modal-overlay" id="settingsModal" hidden>
+    <div class="modal-box">
+      <button class="icon-btn modal-close" id="btnCloseSettings" aria-label="Đóng">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+      <h2>Tuỳ chỉnh giáo viên</h2>
+      <p class="settings-desc">Đổi tên và ảnh đại diện hiển thị trong game thành của thầy/cô nhé!</p>
+
+      <div class="settings-avatar-row">
+        <img class="settings-avatar-preview" id="settingsAvatarPreview" src="assets/thay-avatar.png" alt="Ảnh đại diện" />
+        <div class="settings-avatar-actions">
+          <button class="btn btn-secondary btn-lg" id="btnPickAvatar">Đổi ảnh đại diện</button>
+          <button class="settings-reset-link" id="btnResetAvatar">Khôi phục ảnh mặc định</button>
+        </div>
+      </div>
+
+      <label class="settings-label" for="teacherNameInput">Tên giáo viên</label>
+      <input type="text" id="teacherNameInput" class="license-input settings-name-input" maxlength="60" autocomplete="off" placeholder="Thầy/Cô ..." />
+
+      <button class="btn btn-primary btn-xl" id="btnSaveSettings">Lưu thay đổi</button>
+      <p class="settings-saved-msg" id="settingsSavedMsg" hidden>Đã lưu!</p>
     </div>
   </div>
 

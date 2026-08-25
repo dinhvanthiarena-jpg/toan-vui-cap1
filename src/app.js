@@ -1,10 +1,20 @@
 (() => {
   'use strict';
 
-  /* ================= MASCOT ================= */
+  /* ================= MASCOT & TEACHER SETTINGS ================= */
+  let teacherName = 'Thầy Đinh Thi Ai';
+  let avatarDataUrl = null;
+
   function setMascot(el, mood) {
     if (!el) return;
-    el.innerHTML = `<img class="mascot-photo mood-${mood}" src="assets/thay-avatar.png" alt="Thầy Đinh Thi Ai" />`;
+    const src = avatarDataUrl || 'assets/thay-avatar.png';
+    el.innerHTML = `<img class="mascot-photo mood-${mood}" src="${src}" alt="${teacherName}" />`;
+  }
+
+  function applyTeacherName() {
+    document.querySelectorAll('.js-teacher-name').forEach((el) => { el.textContent = teacherName; });
+    const breakHeading = document.getElementById('breakHeading');
+    if (breakHeading) breakHeading.textContent = `Đố vui cùng ${teacherName}`;
   }
 
   /* ================= AUDIO ================= */
@@ -946,6 +956,67 @@
   });
   setMascot($('mascotLicense'), 'sad');
 
+  /* ================= TEACHER SETTINGS ================= */
+  const settingsModal = $('settingsModal');
+  const settingsAvatarPreview = $('settingsAvatarPreview');
+  const teacherNameInput = $('teacherNameInput');
+  const settingsSavedMsg = $('settingsSavedMsg');
+  let pendingAvatarDataUrl = undefined; // undefined = no change staged this session
+
+  function refreshMascotsEverywhere() {
+    applyTeacherName();
+    setMascot($('mascotHome'), 'happy');
+    setMascot($('mascotLicense'), 'sad');
+  }
+
+  function openSettingsModal() {
+    pendingAvatarDataUrl = undefined;
+    teacherNameInput.value = teacherName;
+    settingsAvatarPreview.src = avatarDataUrl || 'assets/thay-avatar.png';
+    settingsSavedMsg.hidden = true;
+    settingsModal.hidden = false;
+  }
+
+  $('btnOpenSettings').addEventListener('click', () => { sfx.click(); openSettingsModal(); });
+  $('btnCloseSettings').addEventListener('click', () => { sfx.click(); settingsModal.hidden = true; });
+  settingsModal.addEventListener('click', (e) => { if (e.target.id === 'settingsModal') settingsModal.hidden = true; });
+
+  $('btnPickAvatar').addEventListener('click', async () => {
+    sfx.click();
+    if (!window.electronAPI || !window.electronAPI.pickAvatar) return;
+    const res = await window.electronAPI.pickAvatar();
+    if (res.success) {
+      pendingAvatarDataUrl = res.dataUrl;
+      settingsAvatarPreview.src = res.dataUrl;
+    }
+  });
+
+  $('btnResetAvatar').addEventListener('click', () => {
+    sfx.click();
+    pendingAvatarDataUrl = null;
+    settingsAvatarPreview.src = 'assets/thay-avatar.png';
+  });
+
+  $('btnSaveSettings').addEventListener('click', async () => {
+    sfx.click();
+    if (!window.electronAPI) return;
+    const newName = teacherNameInput.value.trim();
+    const nameResult = await window.electronAPI.saveTeacherName(newName);
+    teacherName = nameResult.teacherName;
+
+    if (pendingAvatarDataUrl !== undefined) {
+      const avatarResult = pendingAvatarDataUrl === null
+        ? await window.electronAPI.resetAvatar()
+        : await window.electronAPI.saveAvatar(pendingAvatarDataUrl);
+      avatarDataUrl = avatarResult.avatarDataUrl;
+    }
+
+    refreshMascotsEverywhere();
+    settingsSavedMsg.hidden = false;
+    sfx.correct();
+    setTimeout(() => { settingsModal.hidden = true; }, 900);
+  });
+
   /* ================= AUTO UPDATE ================= */
   const updateBadge = $('updateBadge');
   if (window.electronAPI && window.electronAPI.onUpdateStatus) {
@@ -967,6 +1038,12 @@
 
   /* init */
   (async function boot() {
+    if (window.electronAPI && window.electronAPI.getSettings) {
+      const settings = await window.electronAPI.getSettings();
+      teacherName = settings.teacherName;
+      avatarDataUrl = settings.avatarDataUrl;
+      refreshMascotsEverywhere();
+    }
     if (window.electronAPI && window.electronAPI.getAppVersion) {
       const version = await window.electronAPI.getAppVersion();
       $('appVersion').textContent = `Phiên bản ${version}`;
