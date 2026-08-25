@@ -13,13 +13,25 @@ function sendUpdateStatus(status, extra) {
   }
 }
 
+function logUpdate(line) {
+  try {
+    const logPath = path.join(app.getPath('userData'), 'update-log.txt');
+    fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${line}\n`);
+  } catch (e) {
+    // ignore logging failures
+  }
+}
+
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
+autoUpdater.logger = { info: (m) => logUpdate('INFO ' + m), warn: (m) => logUpdate('WARN ' + m), error: (m) => logUpdate('ERROR ' + m), debug: (m) => logUpdate('DEBUG ' + m) };
 
-autoUpdater.on('update-available', (info) => sendUpdateStatus('available', { version: info.version }));
+autoUpdater.on('checking-for-update', () => logUpdate('checking-for-update'));
+autoUpdater.on('update-available', (info) => { logUpdate('update-available ' + info.version); sendUpdateStatus('available', { version: info.version }); });
+autoUpdater.on('update-not-available', (info) => logUpdate('update-not-available (current ' + info.version + ')'));
 autoUpdater.on('download-progress', (p) => sendUpdateStatus('downloading', { percent: Math.round(p.percent) }));
-autoUpdater.on('update-downloaded', (info) => sendUpdateStatus('downloaded', { version: info.version }));
-autoUpdater.on('error', (err) => sendUpdateStatus('error', { message: String((err && err.message) || err) }));
+autoUpdater.on('update-downloaded', (info) => { logUpdate('update-downloaded ' + info.version); sendUpdateStatus('downloaded', { version: info.version }); });
+autoUpdater.on('error', (err) => { logUpdate('error ' + String((err && err.stack) || err)); sendUpdateStatus('error', { message: String((err && err.message) || err) }); });
 
 const EXTERNAL_LINKS = {
   facebook: 'https://www.facebook.com/dinhthi.daotao/',

@@ -1,6 +1,6 @@
 {
   "name": "toan-vui-cap1",
-  "version": "1.0.11",
+  "version": "1.0.13",
   "description": "Game toán học vui nhộn dành cho học sinh cấp 1 (lớp 1-5)",
   "main": "main.js",
   "author": "Đinh Thi Ai",
@@ -19,7 +19,7 @@
   "build": {
     "appId": "com.dinhthiai.toanvuicap1",
     "productName": "Toan Vui Cap 1",
-    "artifactName": "Toan Vui Cap 1 Setup V11.${ext}",
+    "artifactName": "Toan Vui Cap 1 Setup V13.${ext}",
     "asar": true,
     "directories": {
       "output": "dist"
