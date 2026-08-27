@@ -1,0 +1,12 @@
+{
+  "appId": "com.dinhthiai.toanvuicap1",
+  "appName": "Toán Vui Cấp 1",
+  "webDir": "www",
+  "server": {
+    "url": "https://3dvietpro.com/game/",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

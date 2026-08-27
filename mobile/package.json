@@ -1,0 +1,19 @@
+{
+  "name": "toan-vui-cap1-mobile",
+  "version": "1.0.0",
+  "description": "Android/iOS store wrapper (Capacitor) for Toán Vui Cấp 1 — wraps the same PWA served at 3dvietpro.com/game/",
+  "private": true,
+  "scripts": {
+    "sync": "npx cap sync",
+    "open:android": "npx cap open android",
+    "open:ios": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/ios": "^6.2.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  }
+}
