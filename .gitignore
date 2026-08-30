@@ -1,3 +1,8 @@
 node_modules/
 dist/
 *.log
+
+# Local copy of Claude's persistent memory (contains admin passwords, API
+# keys, DB credentials) -- thầy asked for a copy here for convenience, but
+# it must never be committed/pushed.
+memory/
