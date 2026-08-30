@@ -1,6 +1,6 @@
 {
   "name": "toan-vui-cap1",
-  "version": "1.0.16",
+  "version": "1.0.22",
   "description": "Game toán học vui nhộn dành cho học sinh cấp 1 (lớp 1-5)",
   "main": "main.js",
   "author": "Đinh Thi Ai",
@@ -34,9 +34,11 @@
       "preload.js",
       "license-core.js",
       "src/**/*",
+      "assets/**/*",
       "package.json"
     ],
     "win": {
+      "icon": "assets/icon.ico",
       "target": [
         {
           "target": "nsis",

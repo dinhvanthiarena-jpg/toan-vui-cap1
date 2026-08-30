@@ -926,12 +926,14 @@
 
   /* ================= LICENSE GATE ================= */
   const licenseKeyInput = $('licenseKeyInput');
+  const licenseContactInput = $('licenseContactInput');
   const licenseError = $('licenseError');
 
   async function tryActivate() {
     const key = licenseKeyInput.value;
+    const contact = licenseContactInput ? licenseContactInput.value.trim().slice(0, 120) : '';
     if (!window.electronAPI || !window.electronAPI.activateLicense) return;
-    const res = await window.electronAPI.activateLicense(key);
+    const res = await window.electronAPI.activateLicense(key, contact);
     if (res.success) {
       licenseError.hidden = true;
       sfx.correct();

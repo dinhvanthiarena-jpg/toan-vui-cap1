@@ -283,6 +283,22 @@ button:focus-visible,
   color: #FCA5A5;
   max-width: 460px;
 }
+.license-contact-input {
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 600;
+  font-size: 0.95rem;
+  min-width: 320px;
+  flex-basis: 100%;
+}
+.license-contact-hint {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-on-bg-muted);
+  max-width: 460px;
+  line-height: 1.4;
+}
 
 /* ==== Teacher settings modal ==== */
 .settings-desc {
@@ -749,7 +765,7 @@ button:focus-visible,
   font-weight: 800;
   padding: 8px 18px;
   border-radius: 999px;
-  border: 3px solid #6B3A02;
+  border: 2px solid #6B3A02;
   box-shadow: var(--gloss-shadow-sm);
   animation: pop-in 250ms ease-out;
 }
@@ -975,7 +991,7 @@ button:focus-visible,
   font-weight: 800;
   padding: 8px 18px;
   border-radius: 999px;
-  border: 3px solid #6B3A02;
+  border: 2px solid #6B3A02;
   box-shadow: var(--gloss-shadow-sm);
   margin: 4px 0 10px;
 }

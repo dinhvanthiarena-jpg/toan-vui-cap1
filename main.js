@@ -3,6 +3,8 @@ const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
 const { execFile } = require('child_process');
+const https = require('https');
+const crypto = require('crypto');
 const licenseCore = require('./license-core');
 
 let mainWindow = null;
@@ -269,19 +271,74 @@ ipcMain.handle('settings:reset-avatar', () => {
 
 ipcMain.handle('license:get-status', () => computeLicenseStatus());
 
-ipcMain.handle('license:activate', (event, key) => {
+ipcMain.handle('license:activate', (event, key, contact) => {
   if (!licenseCore.validateKey(key)) {
     return { success: false, message: 'Mã key không đúng. Kiểm tra lại hoặc liên hệ thầy Đinh Thi Ai.' };
   }
   const state = getOrInitLicenseState();
   state.activatedKey = licenseCore.normalizeKey(key);
+  if (typeof contact === 'string' && contact.trim()) {
+    state.contactInfo = contact.trim().slice(0, 120);
+  }
   writeLicenseState(state);
+  sendGamePing();
   return { success: true };
 });
+
+let installIdCache = null;
+
+function getOrCreateInstallId() {
+  if (installIdCache) return installIdCache;
+  const filePath = path.join(app.getPath('userData'), 'install-id.txt');
+  try {
+    const existing = fs.readFileSync(filePath, 'utf8').trim();
+    if (existing) { installIdCache = existing; return existing; }
+  } catch (e) {
+    // no id yet, create one below
+  }
+  const id = crypto.randomUUID();
+  try { fs.writeFileSync(filePath, id, 'utf8'); } catch (e) {}
+  installIdCache = id;
+  return id;
+}
+
+// Best-effort "this machine is using the game" ping so thay can see install
+// counts / which license keys are actually active. Never blocks startup and
+// silently no-ops if the machine is offline.
+function sendGamePing() {
+  try {
+    const licenseState = getOrInitLicenseState();
+    const settings = getSettings();
+    const payload = JSON.stringify({
+      appId: 'toan-vui-cap1',
+      installId: getOrCreateInstallId(),
+      licenseKey: licenseState.activatedKey || null,
+      contactInfo: licenseState.contactInfo || null,
+      teacherName: settings.teacherName,
+      appVersion: app.getVersion(),
+    });
+    const req = https.request(
+      'https://3dvietpro.com/api/game/ping',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+        timeout: 8000,
+      },
+      (res) => { res.resume(); }
+    );
+    req.on('error', () => {});
+    req.on('timeout', () => req.destroy());
+    req.write(payload);
+    req.end();
+  } catch (e) {
+    // never let ping issues affect the game itself
+  }
+}
 
 app.whenReady().then(() => {
   createWindow();
   autoUpdater.checkForUpdates().catch(() => {});
+  sendGamePing();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
