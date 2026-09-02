@@ -77,6 +77,11 @@
   --g3: #A855F7;
   --g4: #F0555A;
   --g5: #F59E0B;
+  /* Grade colors (6-9, THCS) — tiếp tục dải màu trên, không đụng g1-g5 */
+  --g6: #14B8A6;
+  --g7: #6366F1;
+  --g8: #EC4899;
+  --g9: #84CC16;
 
   --sh-1: 0 1px 2px rgba(0,0,0,.5);
   --sh-2: 0 4px 14px rgba(0,0,0,.55);
@@ -180,6 +185,11 @@ button:focus-visible,
   flex-direction: column;
   align-items: center;
   overflow-y: auto;
+  /* iPhone đời cũ (trước iOS 13) không tự bật cuộn chạm mượt cho
+     overflow-y:auto nằm trong vùng position:fixed — thiếu dòng này thì
+     vuốt lên không ăn, các nút nằm dưới màn hình đầu (như nút gọi Mon ở
+     trang chủ trên máy màn hình ngắn) sẽ không với tới được. */
+  -webkit-overflow-scrolling: touch;
   opacity: 0;
 }
 .screen.active {
@@ -262,22 +272,39 @@ button:focus-visible,
 .btn-lg { padding: 15px 26px; font-size: 1rem; }
 .btn-block { width: 100%; }
 
-/* ==== HOME ==== */
+/* ==== HOME ====
+   .screen-with-footer screens (license + home) split into two real flex
+   children instead of overlaying .contact-footer with position:absolute:
+   that overlay approach scrolled together with its content but stayed
+   pinned to a FIXED-size box (.screen's own, unaffected by its overflow),
+   so no amount of bottom padding could ever clear it — the footer always
+   ended up hiding the last row of buttons on short screens (confirmed: the
+   home screen's call/homework/squad icon row sat permanently behind it).
+   Splitting the scrollable area from the footer via flex :1 / flex-shrink:0
+   (same pattern already used for .call-wrap's .call-stage/.call-foot) makes
+   the footer a normal sibling that can never overlap anything. */
+.screen-with-footer { overflow: hidden; }
+.home-scroll {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
 .home-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100%;
-  /* .screen is itself a flex column, so without this, .home-wrap (its only
-     child) gets shrunk by the flex algorithm whenever content is taller
-     than the viewport — squishing the avatar ring down instead of letting
-     the screen's own overflow-y:auto scroll like it's meant to. */
+  /* .home-scroll is itself a flex column, so without this, .home-wrap (its
+     only child) gets shrunk by the flex algorithm whenever content is
+     taller than the viewport — squishing the avatar ring down instead of
+     letting .home-scroll's own overflow-y:auto scroll like it's meant to. */
   flex-shrink: 0;
-  /* Extra bottom padding so centered content never lands underneath the
-     fixed-height footer bar on shorter screens (it's opaque and would
-     just hide whatever sits behind it, like the homework button). */
-  padding: 40px 20px 150px;
+  padding: 40px 20px 24px;
   gap: 6px;
   text-align: center;
 }
@@ -321,6 +348,22 @@ button:focus-visible,
   margin: 14px 0 0;
 }
 
+.level-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 360px; margin: 0 auto 20px; }
+.level-btn {
+  border: none;
+  border-radius: var(--r2);
+  background: var(--card);
+  color: var(--muted-fg);
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 1rem;
+  padding: 12px 8px;
+  box-shadow: inset 0 0 0 2px var(--line);
+  line-height: 1.5;
+}
+.level-btn small { display: block; font-weight: 700; font-size: 0.7rem; opacity: 0.85; }
+.level-btn.selected { color: #fff; background: linear-gradient(135deg, var(--flame), var(--heart)); box-shadow: var(--sh-1); }
+
 .home-actions {
   display: flex;
   gap: 16px;
@@ -329,11 +372,15 @@ button:focus-visible,
 }
 .btn-play {
   min-width: 200px;
+  background: linear-gradient(135deg, var(--brand-fill), var(--heart));
 }
 .btn-gifted {
   background: var(--card);
   color: var(--brand-ink);
   box-shadow: inset 0 0 0 2px var(--brand-soft), var(--sh-1);
+}
+.btn-battle {
+  background: linear-gradient(135deg, var(--flame), var(--heart));
 }
 
 /* Icon-only homework/call buttons */
@@ -502,10 +549,8 @@ button:focus-visible,
 }
 
 .contact-footer {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  flex-shrink: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -701,8 +746,6 @@ button:focus-visible,
 .squad-photo {
   width: 100%;
   max-width: 320px;
-  border-radius: var(--r3);
-  box-shadow: var(--sh-3);
 }
 .squad-slogan {
   font-family: var(--font-heading);
@@ -837,6 +880,10 @@ button:focus-visible,
 .grade-card[data-grade="3"] { background: var(--g3); }
 .grade-card[data-grade="4"] { background: var(--g4); }
 .grade-card[data-grade="5"] { background: var(--g5); }
+.grade-card[data-grade="6"] { background: var(--g6); }
+.grade-card[data-grade="7"] { background: var(--g7); }
+.grade-card[data-grade="8"] { background: var(--g8); }
+.grade-card[data-grade="9"] { background: var(--g9); }
 .grade-card.selected {
   box-shadow: 0 0 0 3px var(--card), 0 0 0 6px currentColor;
 }
@@ -987,45 +1034,44 @@ button:focus-visible,
 }
 .gifted-level-basic { background: var(--ok-soft); color: var(--ok-ink); }
 .gifted-level-advanced { background: #FFE7D6; color: #9A3412; }
-.gifted-head-right { display: flex; align-items: center; gap: 8px; }
 .gifted-num { font-family: var(--font-heading); font-weight: 700; font-size: 0.78rem; color: var(--muted-fg); }
-.gifted-done-badge {
-  font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 0.68rem;
-  padding: 2px 9px;
-  border-radius: var(--rf);
-  background: var(--ok-soft);
-  color: var(--ok-ink);
-}
 
-/* ==== Thanh tiến độ "đã học bao nhiêu bài" ==== */
-.gifted-progress {
+/* ==== HUD điểm số cho phiên ôn liên tục (Điểm + chuỗi đúng liên tiếp) ==== */
+.gifted-score {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   padding: 2px 2px 4px;
 }
-.gifted-progress-track {
-  flex: 1;
-  height: 8px;
-  border-radius: var(--rf);
-  background: var(--muted);
-  overflow: hidden;
-}
-.gifted-progress-fill {
-  height: 100%;
-  border-radius: var(--rf);
-  background: linear-gradient(90deg, var(--brand-fill), var(--ok));
-  transition: width 300ms ease-out;
-}
-.gifted-progress-text {
-  flex-shrink: 0;
+.gifted-score-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-heading);
   font-weight: 800;
-  font-size: 0.78rem;
-  color: var(--muted-fg);
+  font-size: 1rem;
+  color: var(--brand-ink);
+  background: var(--card);
+  border-radius: var(--rf);
+  padding: 7px 16px;
+  box-shadow: var(--sh-1);
 }
+.gifted-score-pill svg { width: 18px; height: 18px; }
+.gifted-streak-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--flame);
+  background: var(--card);
+  border-radius: var(--rf);
+  padding: 7px 16px;
+  box-shadow: var(--sh-1);
+}
+.gifted-streak-pill svg { width: 18px; height: 18px; }
 .gifted-question { font-weight: 700; line-height: 1.55; margin: 0 0 12px; color: var(--fg); }
 .gifted-reveal-btn {
   background: var(--amber-fill);
@@ -1161,8 +1207,45 @@ button:focus-visible,
 .gifted-check-btn:active:not(:disabled) { transform: scale(0.96); }
 .gifted-check-btn:disabled { cursor: default; }
 .gifted-check-btn.dim { opacity: 0.5; }
+.gifted-check-btn.selected { box-shadow: inset 0 0 0 3px var(--brand-fill), var(--sh-1); background: var(--brand-soft); }
 .gifted-check-btn.correct { background: var(--ok); color: #fff; box-shadow: var(--sh-1); animation: pop-in 220ms ease-out; }
 .gifted-check-btn.wrong { background: var(--bad); color: #fff; box-shadow: var(--sh-1); animation: shake 420ms ease-in-out; }
+
+/* Chọn đáp án xong phải bấm Xác nhận mới chấm — tách làm 2 bước để tránh
+   bấm nhầm/chấm hớ, và để có một nhịp dừng rõ ràng trước khi biết đúng/sai. */
+.gifted-confirm-btn {
+  margin-top: 14px;
+  width: 100%;
+  min-height: 46px;
+  background: var(--ok);
+  border: none;
+  border-radius: var(--rf);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 0.9rem;
+  box-shadow: var(--sh-1);
+  transition: transform 140ms ease-out, opacity 140ms ease-out;
+}
+.gifted-confirm-btn:active:not(:disabled) { transform: scale(0.97); }
+.gifted-confirm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Nút sang bài tiếp theo — hiện sau khi đã chấm điểm hoặc xem xong lời giải. */
+.gifted-next-btn {
+  margin-top: 14px;
+  width: 100%;
+  min-height: 48px;
+  background: linear-gradient(135deg, var(--brand-fill), var(--heart));
+  border: none;
+  border-radius: var(--rf);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 0.95rem;
+  box-shadow: var(--sh-2);
+  transition: transform 140ms ease-out;
+}
+.gifted-next-btn:active { transform: scale(0.97); }
 
 /* ==== Game HUD ==== */
 .game-hud {
@@ -2250,14 +2333,20 @@ button:focus-visible,
 /* Video thật của Mon (mon-noi.mp4) — quay sẵn CẢ căn phòng lẫn nhân vật
    trong cùng một cảnh, nên khi có video nó thay hẳn ảnh phòng tĩnh +
    .call-mon chứ không chồng lên trên (chồng lên thì thành "tranh trong
-   tranh"). Không tải được video thì .co-video không bao giờ được thêm,
-   ảnh tĩnh + lớp miệng ghép ở trên vẫn hoạt động y như cũ — class names
-   giữ nguyên như bên app tiếng Anh (dung-yen/co-video) để dễ đồng bộ sau
-   này, hai bên dùng chung một file .mp4. */
+   tranh"). Một khi tải xong thì Ở NGUYÊN suốt cuộc gọi — lúc nói thì
+   phát, lúc im lặng/nghe thì dừng lại (không quay về lớp ảnh tĩnh cũ
+   nữa, xem lý do trong app.js). Không tải được video thì .co-video
+   không bao giờ được thêm, ảnh tĩnh + lớp miệng ghép ở trên vẫn hoạt
+   động y như cũ. */
 .scene-vid {
   position: absolute; inset: 0; width: 100%; height: 100%;
   object-fit: cover; display: block; z-index: 1;
 }
+/* Video DỪNG (không nói) là một khung hình đứng im tuyệt đối — không có
+   cách nào tránh khỏi trông "như ảnh chụp" nếu không thêm chuyển động
+   giả. Thêm nhịp "thở" rất nhẹ bằng CSS (phóng to/dịch nhẹ) cho lúc dừng
+   này, cùng kiểu đã dùng cho lớp ảnh tĩnh trước đây — chỉ ảnh hưởng hình
+   ảnh, không đụng vào việc video có đang phát hay không. */
 .scene-vid.dung-yen { animation: monVidTho 5.4s ease-in-out infinite; }
 @keyframes monVidTho {
   0%, 100% { transform: scale(1) translateY(0); }
@@ -2324,22 +2413,41 @@ button:focus-visible,
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* Chữ neo lên sát đầu màn hình (dưới thanh .call-top một chút) thay vì
+     giữa màn — video của Mon giờ là nội dung chính, chữ chỉ nên là phụ đề
+     gọn gàng, không che mất phần video. */
+  justify-content: flex-start;
+  padding-top: 10px;
   gap: 18px;
   overflow-y: auto;
 }
 .call-bubble {
-  background: rgba(255,255,255,0.96);
-  border-radius: var(--r3);
-  padding: 20px 22px;
+  /* Nền trắng MỜ (không đặc như trước) để thấy video phía sau — thêm
+     backdrop-filter để chữ vẫn đọc rõ dù cảnh phía sau có sáng/tối lộn
+     xộn, không phụ thuộc riêng vào độ mờ của nền trắng. */
+  background: rgba(255,255,255,0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: var(--r2);
+  padding: 10px 18px;
   color: #2B1245;
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 1.15rem;
-  line-height: 1.5;
+  font-size: 0.94rem;
+  line-height: 1.4;
   text-align: center;
   max-width: 92%;
-  box-shadow: var(--sh-3);
+  box-shadow: var(--sh-2);
+  /* Nền mờ thì độ sáng phía sau thất thường tuỳ cảnh video — viền sáng nhẹ
+     quanh chữ giữ chữ luôn đọc được kể cả khi phía sau lỡ tối hơn dự tính. */
+  text-shadow: 0 1px 3px rgba(255,255,255,0.6);
+}
+/* Câu nói dài chỉ hiện ~2 dòng, phần còn lại tự cuộn được (không phá vỡ
+   layout gọn ở đầu màn hình bằng cách đẩy chữ dài tràn xuống hết). */
+#callSaid {
+  display: block;
+  max-height: 2.82em;
+  overflow-y: auto;
 }
 .call-said-lang {
   display: inline-block;
@@ -2449,9 +2557,178 @@ button:focus-visible,
   70% { box-shadow: 0 0 0 20px rgba(240,85,90,0); }
 }
 
+/* ==== Thách Đấu (đấu trường 1v1/2v2) ==== */
+.grade-row-4 { grid-template-columns: repeat(4, 1fr); }
+.battle-grade-group-label {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 0.8rem;
+  color: var(--muted-fg);
+  margin: 18px 0 8px;
+  text-align: left;
+}
+.battle-setup-wrap {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+.battle-name-input { width: 100%; margin-bottom: 20px; text-transform: none; letter-spacing: normal; font-size: 1rem; }
+.battle-mode-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px; }
+.battle-mode-tab {
+  border: none;
+  border-radius: var(--r2);
+  background: var(--card);
+  color: var(--muted-fg);
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 1rem;
+  padding: 12px 8px;
+  box-shadow: inset 0 0 0 2px var(--line);
+  line-height: 1.5;
+}
+.battle-mode-tab small { font-weight: 700; font-size: 0.7rem; opacity: 0.85; }
+.battle-mode-tab.selected { color: #fff; background: linear-gradient(135deg, var(--flame), var(--heart)); box-shadow: var(--sh-1); }
+.battle-2v2-choice { margin-top: 26px; }
+.battle-2v2-choice .btn-xl { width: 100%; }
+.battle-or-divider { text-align: center; font-family: var(--font-heading); font-weight: 700; color: var(--muted-fg); margin: 14px 0; }
+.battle-join-row { display: flex; gap: 10px; align-items: center; }
+.battle-room-code-input {
+  flex: 1;
+  text-align: center;
+  font-size: 1.3rem;
+  letter-spacing: 4px;
+  margin-bottom: 0;
+  text-transform: none;
+}
+.battle-room-code-display { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 6px 0; }
+.battle-room-code-label { font-family: var(--font-heading); font-weight: 700; font-size: 0.8rem; color: var(--muted-fg); }
+.battle-room-code-value {
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-size: 2.4rem;
+  letter-spacing: 8px;
+  color: var(--brand-ink);
+  background: var(--card);
+  border-radius: var(--r2);
+  padding: 8px 22px;
+  box-shadow: var(--sh-1);
+}
+.battle-room-members { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 320px; margin: 10px 0; }
+.battle-room-member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card);
+  border-radius: var(--rf);
+  padding: 8px 16px;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.battle-room-member .team-tag { font-size: 0.7rem; padding: 3px 10px; border-radius: var(--rf); color: #fff; }
+.battle-room-member .team-tag.t0 { background: var(--ok); }
+.battle-room-member .team-tag.t1 { background: var(--heart); }
+.battle-setup-wrap .btn-start,
+.battle-setup-wrap #btnBattleFind { width: 100%; margin-top: 26px; }
+.battle-queue-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 60px 20px;
+  text-align: center;
+}
+.battle-queue-spinner {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 5px solid var(--muted);
+  border-top-color: var(--heart);
+  animation: battle-spin 0.9s linear infinite;
+}
+@keyframes battle-spin { to { transform: rotate(360deg); } }
+.battle-queue-text { font-family: var(--font-heading); font-weight: 700; color: var(--muted-fg); }
+
+.battle-live-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  /* Cùng công thức chừa chỗ cho nút cài đặt/âm thanh cố định góc trên phải
+     đã dùng ở .game-hud — không thì tên/điểm đối thủ bị nút đè lên. */
+  padding: calc(18px + env(safe-area-inset-top, 0px)) calc(140px + env(safe-area-inset-right, 0px)) 0 calc(20px + env(safe-area-inset-left, 0px));
+}
+.battle-side { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 70px; }
+.battle-side-opp { align-items: flex-end; }
+.battle-name { font-family: var(--font-heading); font-weight: 700; font-size: 0.78rem; color: var(--muted-fg); }
+.battle-score { font-family: var(--font-heading); font-weight: 900; font-size: 1.6rem; color: var(--fg); }
+.battle-timer {
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-size: 1.3rem;
+  color: var(--heart);
+  background: var(--card);
+  border-radius: var(--rf);
+  padding: 6px 16px;
+  box-shadow: var(--sh-1);
+}
+.battle-progress-row {
+  width: 100%;
+  max-width: 480px;
+  margin: 10px auto 0;
+  padding: 0 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.battle-progress-bar { height: 8px; border-radius: var(--rf); background: var(--muted); overflow: hidden; }
+.battle-progress-fill { height: 100%; border-radius: var(--rf); width: 0%; transition: width 200ms ease-out; }
+.battle-progress-mine .battle-progress-fill { background: var(--ok); }
+.battle-progress-theirs .battle-progress-fill { background: var(--heart); }
+
+.battle-result-wrap {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 60px 20px;
+  text-align: center;
+  box-sizing: border-box;
+}
+.battle-result-title {
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-size: 2.2rem;
+  margin: 0 0 10px;
+  color: var(--ok-ink);
+}
+.battle-result-title.lose { color: var(--bad-ink); }
+.battle-result-title.draw { color: var(--amber); }
+.battle-result-scores { font-family: var(--font-heading); font-weight: 800; font-size: 1.1rem; color: var(--fg); margin: 0 0 18px; }
+.battle-result-rewards { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 30px; }
+.battle-result-rewards span {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 0.9rem;
+  background: var(--card);
+  color: var(--brand-ink);
+  padding: 8px 16px;
+  border-radius: var(--rf);
+  box-shadow: var(--sh-1);
+}
+.battle-result-actions { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.battle-result-actions .btn-xl { width: 100%; max-width: 280px; }
+
 /* ==== Responsive ==== */
 @media (max-width: 700px) {
   .grade-row { grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .grade-row-4 { grid-template-columns: repeat(4, 1fr); }
   .op-row { grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .grade-card, .op-card { padding: 10px 4px; font-size: 0.75rem; }
   .grade-num { width: 34px; height: 34px; font-size: 1.05rem; }

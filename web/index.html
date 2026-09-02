@@ -39,8 +39,8 @@
   </button>
 
   <!-- SCREEN: LICENSE -->
-  <section id="screen-license" class="screen">
-    <div class="home-wrap">
+  <section id="screen-license" class="screen screen-with-footer">
+    <div class="home-scroll"><div class="home-wrap">
       <div class="mascot-hero-wrap">
         <div class="mascot-hero" id="mascotLicense" aria-hidden="true"></div>
       </div>
@@ -54,7 +54,7 @@
       </div>
       <p class="license-contact-hint">Để lại email/Facebook giúp Thầy Đinh Thi Ai hỗ trợ thầy/cô nhanh hơn khi cần — hoàn toàn không bắt buộc.</p>
       <p class="license-error" id="licenseError" hidden></p>
-    </div>
+    </div></div>
 
     <div class="contact-footer">
       <p class="contact-line">Liên hệ <strong>Thầy Đinh Thi Ai</strong> để nhận mã key kích hoạt</p>
@@ -76,8 +76,8 @@
   </section>
 
   <!-- SCREEN: HOME -->
-  <section id="screen-home" class="screen active">
-    <div class="home-wrap">
+  <section id="screen-home" class="screen screen-with-footer active">
+    <div class="home-scroll"><div class="home-wrap">
       <div class="mascot-hero-wrap">
         <div class="mascot-hero" id="mascotHome" aria-hidden="true"></div>
       </div>
@@ -89,6 +89,10 @@
         <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M12 3v10.59l3.3-3.3 1.4 1.42L12 17.4l-4.7-4.7 1.4-1.42 3.3 3.3V3h2zM5 19h14v2H5v-2z"/></svg>
         Cài đặt ngay vào điện thoại
       </button>
+      <div class="level-toggle" id="levelToggle" role="group" aria-label="Chọn cấp học">
+        <button class="level-btn" data-level="1" id="btnLevel1">Cấp 1<small>Lớp 1 – 5</small></button>
+        <button class="level-btn" data-level="2" id="btnLevel2">Cấp 2<small>Lớp 6 – 9</small></button>
+      </div>
       <div class="home-actions">
         <button class="btn btn-primary btn-xl btn-play" id="btnPlay" aria-label="Bắt đầu chơi">
           <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
@@ -97,6 +101,10 @@
         <button class="btn btn-gifted btn-xl" id="btnGifted" aria-label="Ôn học sinh giỏi">
           <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M12 3 1 9l11 6 9-4.91V17h2V9L12 3zm0 12.5L4.24 9 12 4.5 19.76 9 12 15.5zM5 13.18v4.5L12 21l7-3.32v-4.5L12 17l-7-3.82z"/></svg>
           Ôn học sinh giỏi
+        </button>
+        <button class="btn btn-battle btn-xl" id="btnBattle" aria-label="Thách Đấu">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+          Thách Đấu
         </button>
       </div>
       <div class="home-secondary-actions">
@@ -111,24 +119,10 @@
         </button>
       </div>
       <p class="app-version" id="appVersion"></p>
-    </div>
+    </div></div>
 
     <div class="contact-footer">
       <p class="contact-line">Một sản phẩm của <strong>Thầy Đinh Thi Ai</strong> kính tặng</p>
-      <div class="contact-actions">
-        <span class="contact-phone">
-          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.5.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.5.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
-          0977 317 988
-        </span>
-        <button class="contact-fb-btn" id="btnContactFB">
-          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12z"/></svg>
-          dinhthi.daotao
-        </button>
-        <button class="contact-web-btn" id="btnContactWeb">
-          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm6.93 6h-2.95a15.7 15.7 0 0 0-1.38-3.56A8.03 8.03 0 0 1 18.93 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14a7.99 7.99 0 0 1 0-4h3.38a17.2 17.2 0 0 0 0 4H4.26zm.81 2h2.95a15.7 15.7 0 0 0 1.38 3.56A7.99 7.99 0 0 1 5.07 16zm2.95-8H5.07a7.99 7.99 0 0 1 4.33-3.56A15.7 15.7 0 0 0 8.02 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66a15.36 15.36 0 0 1 0-4h4.68a15.36 15.36 0 0 1 0 4zm.25 5.56A15.7 15.7 0 0 0 15.97 16h2.95a8.03 8.03 0 0 1-4.33 3.56zM16.36 14a17.2 17.2 0 0 0 0-4h3.38a7.99 7.99 0 0 1 0 4h-3.38z"/></svg>
-          3dvietpro.com
-        </button>
-      </div>
     </div>
   </section>
 
@@ -143,7 +137,7 @@
     </div>
 
     <div class="squad-wrap">
-      <img class="squad-photo" src="assets/monl/nhom-monl.jpg" alt="Nhóm bạn học Mon.L" loading="lazy" />
+      <img class="squad-photo" src="assets/monl/nhom-monl.png" alt="Nhóm bạn học Mon.L" loading="lazy" />
       <p class="squad-slogan">Where Learning is Fun</p>
       <p class="squad-intro">Mon không học một mình đâu! Đây là cả nhóm bạn thân của Mon — mỗi bạn giỏi hẳn một môn, cùng nhau biến việc học thành cuộc phiêu lưu vui nhộn mỗi ngày. Mỗi bạn trong nhóm chính là một app dạy học riêng — con thích môn nào thì "gọi" bạn đó ra học cùng nhé!</p>
 
@@ -211,6 +205,12 @@
           <button class="grade-card" data-grade="4"><span class="grade-num">4</span><span>Lớp 4</span></button>
           <button class="grade-card" data-grade="5"><span class="grade-num">5</span><span>Lớp 5</span></button>
         </div>
+        <div class="grade-row grade-row-4" id="gradeRowTHCS" hidden>
+          <button class="grade-card" data-grade="6"><span class="grade-num">6</span><span>Lớp 6</span></button>
+          <button class="grade-card" data-grade="7"><span class="grade-num">7</span><span>Lớp 7</span></button>
+          <button class="grade-card" data-grade="8"><span class="grade-num">8</span><span>Lớp 8</span></button>
+          <button class="grade-card" data-grade="9"><span class="grade-num">9</span><span>Lớp 9</span></button>
+        </div>
       </div>
 
       <div class="setup-group">
@@ -237,12 +237,6 @@
             <span class="mode-icon"><svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path fill="currentColor" d="M15 1H9v2h6zm-4 13h2V8h-2zm8.03-6.61l1.42-1.42a12.7 12.7 0 0 0-1.41-1.41l-1.42 1.42A9 9 0 1 0 20.94 12H23a11 11 0 1 1-3.97-8.61zM12 20a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/></svg></span>
             <span class="mode-title">Thử thách</span>
             <span class="mode-desc">Trả lời thật nhanh trong 60 giây</span>
-          </button>
-          <button class="mode-card mode-card-soon" type="button" disabled aria-disabled="true">
-            <span class="mode-icon"><svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path fill="currentColor" d="M5 4h14v2h-2v1a5 5 0 0 1-4 4.9V15h3v2H8v-2h3v-3.1A5 5 0 0 1 7 7V6H5V4zm2 2v1a3 3 0 0 0 2 2.83V6H7zm8 0h-2v2.83A3 3 0 0 0 15 7V6z"/></svg></span>
-            <span class="mode-title">Giải đấu</span>
-            <span class="mode-desc">Thi đấu với người chơi khác</span>
-            <span class="soon-badge">Sắp ra mắt</span>
           </button>
         </div>
       </div>
@@ -424,6 +418,7 @@
     <div class="gifted-wrap">
       <div class="gifted-grade-picker" id="giftedGradePicker">
         <p class="setup-label">Chọn lớp muốn ôn</p>
+        <p class="battle-grade-group-label">Tiểu học</p>
         <div class="grade-row" id="giftedGradeRow">
           <button class="grade-card" data-grade="1"><span class="grade-num">1</span><span>Lớp 1</span></button>
           <button class="grade-card" data-grade="2"><span class="grade-num">2</span><span>Lớp 2</span></button>
@@ -431,8 +426,112 @@
           <button class="grade-card" data-grade="4"><span class="grade-num">4</span><span>Lớp 4</span></button>
           <button class="grade-card" data-grade="5"><span class="grade-num">5</span><span>Lớp 5</span></button>
         </div>
+        <p class="battle-grade-group-label">THCS</p>
+        <div class="grade-row grade-row-4" id="giftedGradeRowTHCS">
+          <button class="grade-card" data-grade="6"><span class="grade-num">6</span><span>Lớp 6</span></button>
+          <button class="grade-card" data-grade="7"><span class="grade-num">7</span><span>Lớp 7</span></button>
+          <button class="grade-card" data-grade="8"><span class="grade-num">8</span><span>Lớp 8</span></button>
+          <button class="grade-card" data-grade="9"><span class="grade-num">9</span><span>Lớp 9</span></button>
+        </div>
       </div>
       <div class="gifted-problem-list" id="giftedProblemList" hidden></div>
+    </div>
+  </section>
+
+  <!-- SCREEN: THÁCH ĐẤU — chọn lớp / tìm đối thủ -->
+  <section id="screen-battle-setup" class="screen">
+    <div class="topbar">
+      <button class="icon-btn" id="btnBattleBack" aria-label="Quay lại">
+        <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/></svg>
+      </button>
+      <h2 class="topbar-title">Thách Đấu</h2>
+      <div style="width:44px"></div>
+    </div>
+
+    <div class="battle-setup-wrap" id="battleSetupWrap">
+      <p class="setup-label">Tên của con là gì?</p>
+      <input type="text" id="battleNameInput" class="license-input battle-name-input" maxlength="24" placeholder="Nhập tên để đối thủ biết nhé" autocomplete="off" spellcheck="false" />
+      <p class="setup-label">Đấu kiểu gì?</p>
+      <div class="battle-mode-tabs" id="battleModeTabs">
+        <button class="battle-mode-tab selected" type="button" data-mode="1v1">1 vs 1<br /><small>Ghép ngẫu nhiên</small></button>
+        <button class="battle-mode-tab" type="button" data-mode="2v2">2 vs 2<br /><small>Đấu theo đội, mời bạn</small></button>
+      </div>
+      <p class="setup-label">Con học lớp mấy?</p>
+      <p class="battle-grade-group-label">Tiểu học</p>
+      <div class="grade-row" id="battleGradeRowTH">
+        <button class="grade-card" data-grade="1"><span class="grade-num">1</span><span>Lớp 1</span></button>
+        <button class="grade-card" data-grade="2"><span class="grade-num">2</span><span>Lớp 2</span></button>
+        <button class="grade-card" data-grade="3"><span class="grade-num">3</span><span>Lớp 3</span></button>
+        <button class="grade-card" data-grade="4"><span class="grade-num">4</span><span>Lớp 4</span></button>
+        <button class="grade-card" data-grade="5"><span class="grade-num">5</span><span>Lớp 5</span></button>
+      </div>
+      <p class="battle-grade-group-label">THCS</p>
+      <div class="grade-row grade-row-4" id="battleGradeRowTHCS">
+        <button class="grade-card" data-grade="6"><span class="grade-num">6</span><span>Lớp 6</span></button>
+        <button class="grade-card" data-grade="7"><span class="grade-num">7</span><span>Lớp 7</span></button>
+        <button class="grade-card" data-grade="8"><span class="grade-num">8</span><span>Lớp 8</span></button>
+        <button class="grade-card" data-grade="9"><span class="grade-num">9</span><span>Lớp 9</span></button>
+      </div>
+      <button class="btn btn-primary btn-xl" id="btnBattleFind" disabled>Tìm đối thủ</button>
+
+      <p class="battle-or-divider" id="battleRoomDivider">hoặc chơi cùng bạn qua mã phòng</p>
+      <div class="battle-2v2-choice" id="battle2v2Choice">
+        <button class="btn btn-primary btn-xl" id="btnBattleCreateRoom" disabled>Tạo phòng mới</button>
+        <p class="battle-or-divider">hoặc</p>
+        <div class="battle-join-row">
+          <input type="text" id="battleRoomCodeInput" class="license-input battle-room-code-input" maxlength="4" inputmode="numeric" placeholder="Mã phòng" autocomplete="off" />
+          <button class="btn btn-secondary" id="btnBattleJoinRoom" disabled>Vào phòng</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="battle-queue-wrap" id="battleQueueWrap" hidden>
+      <div class="battle-queue-spinner" aria-hidden="true"></div>
+      <p class="battle-queue-text" id="battleQueueText">Đang tìm đối thủ cùng lớp...</p>
+      <div class="battle-room-code-display" id="battleRoomCodeDisplay" hidden>
+        <span class="battle-room-code-label">Mã phòng — gửi cho bạn bè</span>
+        <span class="battle-room-code-value" id="battleRoomCodeValue">0000</span>
+      </div>
+      <div class="battle-room-members" id="battleRoomMembers" hidden></div>
+      <button class="btn btn-text" id="btnBattleCancelQueue">Hủy tìm</button>
+    </div>
+  </section>
+
+  <!-- SCREEN: THÁCH ĐẤU — trận đấu trực tiếp -->
+  <section id="screen-battle-live" class="screen">
+    <div class="battle-live-hud">
+      <div class="battle-side battle-side-me">
+        <span class="battle-name" id="battleMeName">Bạn</span>
+        <span class="battle-score" id="battleMeScore">0</span>
+      </div>
+      <div class="battle-timer" id="battleTimer">90</div>
+      <div class="battle-side battle-side-opp">
+        <span class="battle-name" id="battleOppName">Đối thủ</span>
+        <span class="battle-score" id="battleOppScore">0</span>
+      </div>
+    </div>
+    <div class="battle-progress-row">
+      <div class="battle-progress-bar battle-progress-mine"><div class="battle-progress-fill" id="battleMeFill"></div></div>
+      <div class="battle-progress-bar battle-progress-theirs"><div class="battle-progress-fill" id="battleOppFill"></div></div>
+    </div>
+    <div class="game-stage">
+      <div class="question-card" id="battleQuestionCard">
+        <div class="question-text" id="battleQuestionText">…</div>
+      </div>
+      <div class="answers-grid" id="battleAnswersGrid"></div>
+    </div>
+  </section>
+
+  <!-- SCREEN: THÁCH ĐẤU — kết quả -->
+  <section id="screen-battle-result" class="screen">
+    <div class="battle-result-wrap">
+      <h1 class="battle-result-title" id="battleResultTitle">Thắng!</h1>
+      <p class="battle-result-scores" id="battleResultScores"></p>
+      <div class="battle-result-rewards" id="battleResultRewards"></div>
+      <div class="battle-result-actions">
+        <button class="btn btn-primary btn-xl" id="btnBattlePlayAgain">Chơi lại</button>
+        <button class="btn btn-text" id="btnBattleResultHome">Về trang chủ</button>
+      </div>
     </div>
   </section>
 
@@ -475,7 +574,7 @@
         <div class="scene-fit" id="sceneFit">
           <img class="scene-room" src="assets/monl/mon-room.jpg" alt="" decoding="async" />
           <div class="call-mon" id="callMascot"><span class="mon-beat"><img class="mon-base" src="assets/monl/mon-closed.png" alt="" decoding="async" /><img class="mon-mouth" src="assets/monl/mon-mouth.png" alt="" decoding="async" /></span></div>
-          <video class="scene-vid" id="callVid" muted playsinline loop preload="auto" hidden></video>
+          <video class="scene-vid" id="callVid" muted playsinline preload="auto" hidden></video>
         </div>
         <div class="scene-veil"></div>
       </div>
@@ -639,6 +738,7 @@
 
   <div id="confettiLayer" aria-hidden="true"></div>
 
+  <script src="/socket.io/socket.io.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

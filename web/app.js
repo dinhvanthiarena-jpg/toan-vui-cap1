@@ -206,8 +206,10 @@
   const OP_SYMBOL = { add: '+', sub: '−', mul: '×', div: '÷' };
 
   function fmtNum(n) {
-    if (Number.isInteger(n)) return n.toString();
-    return n.toFixed(1).replace('.', ',');
+    const s = Number.isInteger(n) ? n.toString() : n.toFixed(1).replace('.', ',');
+    // Dấu trừ chuẩn kiểu chữ (U+2212) cho số âm (lớp 6-9), khớp với
+    // OP_SYMBOL.sub — lớp 1-5 không bao giờ ra số âm nên không đổi gì.
+    return s.startsWith('-') ? '−' + s.slice(1) : s;
   }
 
   /* ================= VISUAL QUESTION FORMATS =================
@@ -328,7 +330,7 @@
         else if (op === 'mul') { a = randInt(11, 99); b = randInt(2, 12); ans = a * b; }
         else { const d = randInt(2, 12), q = randInt(5, 50); a = d * q; b = d; ans = q; }
         break;
-      default: // grade 5
+      case 5:
         if (op === 'add') {
           if (Math.random() < 0.5) {
             a = randInt(1, 999) / 10; b = randInt(1, 999) / 10;
@@ -345,11 +347,41 @@
         } else if (op === 'mul') { a = randInt(12, 99); b = randInt(2, 12); ans = a * b; }
         else { const d = randInt(2, 12), q = randInt(10, 99); a = d * q; b = d; ans = q; }
         break;
+      // ---- Lớp 6-9 (THCS): làm quen số âm, số thập phân, phạm vi rộng dần ----
+      case 6:
+        if (op === 'add') { a = randInt(-50, 50); b = randInt(-50, 50); ans = a + b; }
+        else if (op === 'sub') { a = randInt(-50, 50); b = randInt(-50, 50); ans = a - b; }
+        else if (op === 'mul') { a = randInt(-12, 12); b = randInt(-12, 12); ans = a * b; }
+        else { const d = randInt(2, 12) * (Math.random() < 0.5 ? -1 : 1), q = randInt(2, 12); a = d * q; b = d; ans = q; }
+        break;
+      case 7:
+        if (op === 'add' || op === 'sub') {
+          a = Math.round(randInt(-999, 999) / 10 * 10) / 10;
+          b = Math.round(randInt(-999, 999) / 10 * 10) / 10;
+          ans = Math.round((op === 'add' ? a + b : a - b) * 10) / 10;
+          decimal = true;
+        } else if (op === 'mul') { a = randInt(-15, 15); b = randInt(-15, 15); ans = a * b; }
+        else { const d = randInt(2, 15) * (Math.random() < 0.5 ? -1 : 1), q = randInt(2, 15); a = d * q; b = d; ans = q; }
+        break;
+      case 8:
+        if (op === 'add' || op === 'sub') { a = randInt(-200, 200); b = randInt(-200, 200); ans = op === 'add' ? a + b : a - b; }
+        else if (op === 'mul') { a = randInt(-25, 25); b = randInt(-25, 25); ans = a * b; }
+        else { const d = randInt(2, 20) * (Math.random() < 0.5 ? -1 : 1), q = randInt(2, 20); a = d * q; b = d; ans = q; }
+        break;
+      default: // grade 9
+        if (op === 'add' || op === 'sub') {
+          a = Math.round(randInt(-9999, 9999) / 10 * 10) / 10;
+          b = Math.round(randInt(-9999, 9999) / 10 * 10) / 10;
+          ans = Math.round((op === 'add' ? a + b : a - b) * 10) / 10;
+          decimal = true;
+        } else if (op === 'mul') { a = randInt(-30, 30); b = randInt(-30, 30); ans = a * b; }
+        else { const d = randInt(2, 25) * (Math.random() < 0.5 ? -1 : 1), q = randInt(2, 25); a = d * q; b = d; ans = q; }
+        break;
     }
     return { a, b, ans, op, decimal };
   }
 
-  function makeDistractors(correct, decimal) {
+  function makeDistractors(correct, decimal, allowNegative) {
     const used = new Set([correct]);
     const out = [];
     let guard = 0;
@@ -359,13 +391,13 @@
       if (decimal) {
         const delta = Math.round((Math.random() * 2 + 0.1) * 10) / 10 * (Math.random() < 0.5 ? -1 : 1);
         val = Math.round((correct + delta) * 10) / 10;
-        if (val < 0) val = Math.round((Math.abs(correct) + Math.random() * 3 + 0.1) * 10) / 10;
+        if (val < 0 && !allowNegative) val = Math.round((Math.abs(correct) + Math.random() * 3 + 0.1) * 10) / 10;
       } else {
         const magnitude = Math.max(2, Math.abs(correct));
         const maxDelta = Math.max(2, Math.round(magnitude * 0.3));
         const delta = randInt(1, maxDelta) * (Math.random() < 0.5 ? -1 : 1);
         val = correct + delta;
-        if (val < 0) val = correct + Math.abs(delta) + 1;
+        if (val < 0 && !allowNegative) val = correct + Math.abs(delta) + 1;
       }
       if (!used.has(val)) { used.add(val); out.push(val); }
     }
@@ -383,7 +415,7 @@
 
     const op = opChoice === 'mix' ? pick(['add', 'sub', 'mul', 'div']) : opChoice;
     const { a, b, ans, decimal } = genByGradeOp(grade, op);
-    const distractors = makeDistractors(ans, decimal);
+    const distractors = makeDistractors(ans, decimal, grade >= 6);
     const choices = [ans, ...distractors].sort(() => Math.random() - 0.5);
     const dragMode = Math.random() < 0.35;
 
@@ -392,6 +424,9 @@
     // glance (mirrors how grade-1 textbooks teach counting → arithmetic).
     const iconEligible = (op === 'add' || op === 'sub') && !decimal && a >= 1 && a <= 9 && b >= 1 && b <= 9;
     const useIcons = iconEligible && Math.random() < 0.4;
+    // Số âm ở toán hạng thứ hai (lớp 6-9) được ngoặc lại — "5 − -3" đọc rất
+    // rối, "5 − (−3)" đúng chuẩn cách viết toán.
+    const bStr = b < 0 ? `(${fmtNum(b)})` : fmtNum(b);
 
     let exprHtml, eqSym;
     if (useIcons) {
@@ -399,14 +434,14 @@
       exprHtml = `<span class="icon-eq">${iconGroupHtml(icon, a)}<span class="op-sym">${OP_SYMBOL[op]}</span>${iconGroupHtml(icon, b)}<span class="op-sym">=</span></span>`;
       eqSym = '';
     } else {
-      exprHtml = `${fmtNum(a)} ${OP_SYMBOL[op]} ${fmtNum(b)}`;
+      exprHtml = `${fmtNum(a)} ${OP_SYMBOL[op]} ${bStr}`;
       eqSym = ' = ';
     }
     const displayHtml = `${exprHtml}${eqSym}${dragMode ? dropSlotHtml() : '?'}`;
 
     return {
       kind: useIcons ? 'icon-count' : 'arithmetic',
-      text: `${fmtNum(a)} ${OP_SYMBOL[op]} ${fmtNum(b)}`,
+      text: `${fmtNum(a)} ${OP_SYMBOL[op]} ${bStr}`,
       displayHtml,
       answer: ans,
       choices,
@@ -553,6 +588,7 @@
   const $ = (id) => document.getElementById(id);
   const screens = {
     license: $('screen-license'), home: $('screen-home'), setup: $('screen-setup'), game: $('screen-game'), result: $('screen-result'), homework: $('screen-homework'), gifted: $('screen-gifted'), call: $('screen-call'), squad: $('screen-squad'),
+    battleSetup: $('screen-battle-setup'), battleLive: $('screen-battle-live'), battleResult: $('screen-battle-result'),
   };
   function showScreen(name) {
     Object.values(screens).forEach(s => s.classList.remove('active'));
@@ -598,15 +634,6 @@
   $('btnPlay').addEventListener('click', () => { sfx.click(); showScreen('setup'); });
   $('btnGifted').addEventListener('click', () => { sfx.click(); showScreen('gifted'); giftedShowGradePicker(); });
   setMascot($('mascotHome'), 'happy');
-
-  $('btnContactFB').addEventListener('click', () => {
-    sfx.click();
-    if (window.electronAPI) window.electronAPI.openExternalLink('facebook');
-  });
-  $('btnContactWeb').addEventListener('click', () => {
-    sfx.click();
-    if (window.electronAPI) window.electronAPI.openExternalLink('website');
-  });
 
   /* ================= ÔN HỌC SINH GIỎI ================= */
   // Curated advanced/enrichment problems per grade, ordered easy → hard —
@@ -709,6 +736,46 @@
         ],
         solution: 'Số cần tìm là: 15 − 1 = 14. Số liền trước của 14 là: 14 − 1 = <strong>13</strong>.',
       },
+      {
+        level: 'Cơ bản',
+        text: 'Hộp đồ chơi của Na có 6 hình vuông và 5 hình tam giác. Hỏi số hình vuông nhiều hơn số hình tam giác mấy hình?',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho: hộp có <strong>6 hình vuông</strong> và <strong>5 hình tam giác</strong>.<br><br>Đề hỏi: hình vuông <strong>nhiều hơn</strong> hình tam giác bao nhiêu hình?' },
+          { t: 'Kiến thức cần dùng', b: 'Muốn biết một nhóm nhiều hơn nhóm kia bao nhiêu, con lấy <strong>số nhiều trừ số ít</strong>.<br><br>Ví dụ dễ hơn: có 5 quả cam, 3 quả chuối thì cam nhiều hơn chuối 5 − 3 = 2 quả.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Xác định số nào lớn hơn — ở đây là 6 hình vuông.<br><br>Bước 2: Lấy 6 <strong>trừ</strong> 5.<br><br>Bước 3: Viết kèm chữ "hình" vào đáp số cho rõ nghĩa.' },
+        ],
+        solution: 'Số hình vuông nhiều hơn số hình tam giác là: 6 − 5 = <strong>1 hình</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Một sợi dây dài 25cm, cắt bớt đi 8cm. Hỏi sợi dây còn lại dài bao nhiêu xăng-ti-mét?',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho: sợi dây dài <strong>25cm</strong>, bị <strong>cắt bớt 8cm</strong>.<br><br>Đề hỏi: phần dây <strong>còn lại</strong> dài bao nhiêu cm?' },
+          { t: 'Kiến thức cần dùng', b: '"Cắt bớt" nghĩa là <strong>bớt đi, mất đi</strong> một phần — dùng phép <strong>trừ</strong>.<br><br>Ví dụ dễ hơn: băng giấy dài 10cm, cắt bớt 3cm thì còn 10 − 3 = 7cm.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Lấy độ dài ban đầu của sợi dây (25cm).<br><br>Bước 2: <strong>Trừ</strong> đi phần đã cắt (8cm).<br><br>Bước 3: Nhớ viết đơn vị "cm" vào đáp số.' },
+        ],
+        solution: 'Sợi dây còn lại dài: 25 − 8 = <strong>17cm</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Kim ngắn của đồng hồ chỉ đúng vào số 3, kim dài chỉ đúng vào số 12. Hỏi lúc đó là mấy giờ?',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho: <strong>kim ngắn</strong> chỉ số 3, <strong>kim dài</strong> chỉ số 12.<br><br>Đề hỏi: lúc đó là mấy giờ?' },
+          { t: 'Kiến thức cần dùng', b: 'Trên đồng hồ, <strong>kim ngắn chỉ giờ</strong>, kim dài chỉ phút. Khi kim dài chỉ đúng số 12, đó là lúc <strong>đúng giờ</strong> (không lẻ phút) — giờ chính là số mà kim ngắn đang chỉ tới.<br><br>Ví dụ dễ hơn: kim ngắn chỉ số 7, kim dài chỉ số 12 thì lúc đó là 7 giờ đúng.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Kiểm tra kim dài có đang chỉ đúng số 12 không — có, nên đây là giờ đúng, không có phút lẻ.<br><br>Bước 2: Đọc số mà kim ngắn đang chỉ tới, đó chính là số giờ.' },
+        ],
+        solution: 'Kim dài chỉ đúng số 12 nên là giờ đúng. Kim ngắn chỉ số 3, vậy lúc đó là <strong>3 giờ</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Tìm số lớn nhất có 2 chữ số, biết chữ số hàng chục lớn hơn chữ số hàng đơn vị 3 đơn vị.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Số cần tìm có <strong>2 chữ số</strong>: một chữ số hàng chục và một chữ số hàng đơn vị.<br><br>Điều kiện: chữ số hàng chục <strong>hơn</strong> chữ số hàng đơn vị <strong>3 đơn vị</strong>. Đề hỏi số <strong>lớn nhất</strong> thoả điều kiện đó.' },
+          { t: 'Kiến thức cần dùng', b: 'Số có 2 chữ số càng <strong>lớn</strong> khi chữ số hàng chục càng lớn. Chữ số hàng chục lớn nhất có thể là <strong>9</strong> (từ 1 đến 9).<br><br>Ví dụ dễ hơn: trong các số có chữ số hàng chục là 9, số 9__ luôn lớn hơn số 8__, nên cứ ưu tiên hàng chục lớn nhất trước.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Chọn chữ số hàng chục lớn nhất có thể, thử với 9.<br><br>Bước 2: Tính chữ số hàng đơn vị = chữ số hàng chục − 3 = 9 − 3 = 6.<br><br>Bước 3: Ghép hai chữ số lại theo đúng thứ tự hàng chục rồi hàng đơn vị.' },
+        ],
+        solution: 'Chọn chữ số hàng chục lớn nhất là 9, thì chữ số hàng đơn vị là 9 − 3 = 6. Số cần tìm là <strong>96</strong>.',
+      },
     ],
     2: [
       {
@@ -800,6 +867,46 @@
           { t: 'Hướng làm bài này', b: 'Bước 1: Tính hiệu số bi giữa An và Bình: 14 − 8.<br><br>Bước 2: Lấy hiệu đó chia 2, ra số viên An cần cho.<br><br>Bước 3: Thử lại: An cho xong còn bao nhiêu, Bình nhận xong có bao nhiêu — hai số đó phải bằng nhau.' },
         ],
         solution: 'Hiệu số bi là: 14 − 8 = 6 (viên). An phải cho Bình: 6 : 2 = <strong>3 viên bi</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Mỗi hộp có 4 cái bánh. Hỏi 5 hộp như thế có tất cả bao nhiêu cái bánh?',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho: mỗi hộp có <strong>4 cái bánh</strong>, có tất cả <strong>5 hộp</strong> giống nhau.<br><br>Đề hỏi: tổng số bánh của cả 5 hộp.' },
+          { t: 'Kiến thức cần dùng', b: 'Khi có <strong>nhiều nhóm giống nhau</strong>, mỗi nhóm cùng một số lượng, muốn tìm tổng thì dùng <strong>phép nhân</strong>: số mỗi nhóm × số nhóm.<br><br>Ví dụ dễ hơn: mỗi túi có 3 quả táo, 4 túi như vậy có 3 × 4 = 12 quả táo.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Xác định số bánh trong mỗi hộp (4) và số hộp (5).<br><br>Bước 2: Lấy 4 <strong>nhân</strong> 5.<br><br>Bước 3: Có thể thử lại bằng cách cộng liên tiếp: 4 + 4 + 4 + 4 + 4.' },
+        ],
+        solution: 'Số bánh có tất cả là: 4 × 5 = <strong>20 cái bánh</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Một hình tam giác có ba cạnh dài lần lượt là 5cm, 6cm và 7cm. Tính chu vi hình tam giác đó.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho độ dài <strong>ba cạnh</strong> của hình tam giác: 5cm, 6cm, 7cm.<br><br>Đề hỏi: <strong>chu vi</strong> của hình tam giác đó.' },
+          { t: 'Kiến thức cần dùng', b: '<strong>Chu vi</strong> của một hình là tổng độ dài tất cả các cạnh của hình đó. Với tam giác, chu vi = cạnh 1 + cạnh 2 + cạnh 3.<br><br>Ví dụ dễ hơn: tam giác có 3 cạnh đều 4cm thì chu vi là 4 + 4 + 4 = 12cm.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Viết phép cộng ba cạnh: 5 + 6 + 7.<br><br>Bước 2: Cộng lần lượt từ trái sang phải cho chắc, không nhầm số.<br><br>Bước 3: Nhớ viết đơn vị "cm" vào đáp số.' },
+        ],
+        solution: 'Chu vi hình tam giác là: 5 + 6 + 7 = <strong>18cm</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Một sợi dây dài 2m 30cm. Hỏi sợi dây đó dài bao nhiêu xăng-ti-mét?',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho độ dài sợi dây gồm <strong>hai đơn vị khác nhau</strong>: 2 mét và 30 xăng-ti-mét.<br><br>Đề hỏi: đổi toàn bộ độ dài đó sang <strong>một đơn vị duy nhất</strong> là cm.' },
+          { t: 'Kiến thức cần dùng', b: 'Cần nhớ: <strong>1m = 100cm</strong>. Muốn đổi mét sang xăng-ti-mét, lấy số mét nhân với 100, rồi cộng thêm phần cm đã có sẵn.<br><br>Ví dụ dễ hơn: 1m 20cm = 100cm + 20cm = 120cm.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Đổi 2m sang cm: 2 × 100 = 200cm.<br><br>Bước 2: Cộng thêm 30cm đã có: 200 + 30.<br><br>Bước 3: Viết kết quả kèm đơn vị "cm".' },
+        ],
+        solution: '2m = 200cm. Sợi dây dài: 200 + 30 = <strong>230cm</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Một bộ phim bắt đầu chiếu lúc 7 giờ tối và chiếu trong 2 giờ. Hỏi phim kết thúc lúc mấy giờ?',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho: phim <strong>bắt đầu</strong> lúc 7 giờ tối, <strong>chiếu trong</strong> 2 giờ.<br><br>Đề hỏi: phim <strong>kết thúc</strong> lúc mấy giờ?' },
+          { t: 'Kiến thức cần dùng', b: 'Muốn tìm giờ kết thúc, lấy <strong>giờ bắt đầu cộng với thời gian đã trôi qua</strong>.<br><br>Ví dụ dễ hơn: tiết học bắt đầu lúc 8 giờ, học trong 1 giờ thì kết thúc lúc 8 + 1 = 9 giờ.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Lấy giờ bắt đầu (7 giờ).<br><br>Bước 2: <strong>Cộng</strong> với số giờ chiếu phim (2 giờ).<br><br>Bước 3: Đọc kết quả kèm buổi trong ngày (ở đây vẫn là buổi tối).' },
+        ],
+        solution: 'Phim kết thúc lúc: 7 + 2 = <strong>9 giờ tối</strong>.',
       },
     ],
     3: [
@@ -893,6 +1000,46 @@
         ],
         solution: 'Chu vi mảnh vườn là: 9 × 4 = <strong>36m</strong>.',
       },
+      {
+        level: 'Cơ bản',
+        text: 'Một hình chữ nhật có chiều dài 8cm, chiều rộng 5cm. Tính diện tích hình đó.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho hình chữ nhật có <strong>chiều dài 8cm</strong>, <strong>chiều rộng 5cm</strong>.<br><br>Đề hỏi: <strong>diện tích</strong> của hình đó.' },
+          { t: 'Kiến thức cần dùng', b: 'Công thức tính diện tích hình chữ nhật: <strong>diện tích = chiều dài × chiều rộng</strong>.<br><br>Chú ý: diện tích khác chu vi — chu vi là cộng các cạnh, còn diện tích là nhân hai cạnh với nhau.<br><br>Ví dụ dễ hơn: hình chữ nhật dài 6cm, rộng 3cm có diện tích 6 × 3 = 18cm².' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Xác định chiều dài (8cm) và chiều rộng (5cm).<br><br>Bước 2: Lấy hai số đó <strong>nhân</strong> với nhau.<br><br>Bước 3: Viết đơn vị diện tích là "cm²" (xăng-ti-mét vuông), không phải "cm".' },
+        ],
+        solution: 'Diện tích hình chữ nhật là: 8 × 5 = <strong>40cm²</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Một chiếc bánh được chia đều thành 4 phần bằng nhau. Lan ăn 1 phần. Hỏi Lan đã ăn bao nhiêu phần của chiếc bánh?',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho: chiếc bánh chia thành <strong>4 phần bằng nhau</strong>, Lan ăn <strong>1 phần</strong> trong số đó.<br><br>Đề hỏi: Lan đã ăn bao nhiêu <strong>phần</strong> của cả chiếc bánh (viết dưới dạng phân số)?' },
+          { t: 'Kiến thức cần dùng', b: 'Khi một vật được chia đều thành nhiều phần bằng nhau, mỗi phần được viết là một <strong>phân số</strong>: số phần lấy ra là <strong>tử số</strong> (viết trên), tổng số phần chia được là <strong>mẫu số</strong> (viết dưới).<br><br>Ví dụ dễ hơn: chia quả cam thành 3 phần bằng nhau, ăn 1 phần thì đã ăn 1/3 quả cam.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Xác định tổng số phần chia được — ở đây là 4, đó là mẫu số.<br><br>Bước 2: Xác định số phần Lan đã ăn — ở đây là 1, đó là tử số.<br><br>Bước 3: Viết thành phân số: tử số trên, mẫu số dưới.' },
+        ],
+        solution: 'Lan đã ăn <strong>1/4</strong> chiếc bánh.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Một tháng có 30 ngày, ngày 1 của tháng là thứ Ba. Hỏi ngày 10 của tháng đó là thứ mấy?',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho: <strong>ngày 1</strong> là <strong>thứ Ba</strong>.<br><br>Đề hỏi: <strong>ngày 10</strong> là thứ mấy?' },
+          { t: 'Kiến thức cần dùng', b: 'Một tuần có <strong>7 ngày</strong>, cứ sau 7 ngày thì quay lại đúng thứ cũ. Muốn biết ngày sau cách ngày đầu bao xa, lấy hiệu hai số ngày, rồi đếm tiếp từng ngày trong tuần từ thứ đã biết.<br><br>Ví dụ dễ hơn: ngày 1 là thứ Hai thì ngày 3 (cách 2 ngày) là thứ Tư (đếm: thứ Hai → thứ Ba → thứ Tư).' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Tính số ngày cách nhau giữa ngày 10 và ngày 1: 10 − 1 = 9 ngày.<br><br>Bước 2: Vì 1 tuần có 7 ngày, 9 ngày là 1 tuần (7 ngày, quay lại thứ Ba) rồi thêm 2 ngày nữa.<br><br>Bước 3: Từ thứ Ba, đếm thêm 2 ngày: thứ Ba → thứ Tư → thứ Năm.' },
+        ],
+        solution: '9 ngày = 1 tuần (7 ngày) + 2 ngày. Sau 1 tuần vẫn là thứ Ba, đếm thêm 2 ngày nữa là thứ Tư rồi thứ Năm. Vậy ngày 10 là <strong>thứ Năm</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Nam có 2 tờ 10 000 đồng và 3 tờ 5 000 đồng. Hỏi Nam có tất cả bao nhiêu tiền?',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho: Nam có <strong>2 tờ 10 000 đồng</strong> và <strong>3 tờ 5 000 đồng</strong>.<br><br>Đề hỏi: tổng số tiền Nam có.' },
+          { t: 'Kiến thức cần dùng', b: 'Muốn tính tổng tiền gồm nhiều loại tờ tiền, tính <strong>số tiền của từng loại</strong> (lấy mệnh giá nhân số tờ) rồi <strong>cộng lại</strong>.<br><br>Ví dụ dễ hơn: có 2 tờ 2 000 đồng thì được 2 × 2 000 = 4 000 đồng.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Tính tiền từ tờ 10 000 đồng: 2 × 10 000.<br><br>Bước 2: Tính tiền từ tờ 5 000 đồng: 3 × 5 000.<br><br>Bước 3: <strong>Cộng</strong> hai kết quả lại để ra tổng số tiền.' },
+        ],
+        solution: 'Tiền tờ 10 000: 2 × 10 000 = 20 000 đồng. Tiền tờ 5 000: 3 × 5 000 = 15 000 đồng. Tổng cộng: 20 000 + 15 000 = <strong>35 000 đồng</strong>.',
+      },
     ],
     4: [
       {
@@ -984,6 +1131,46 @@
           { t: 'Hướng làm bài này', b: 'Bước 1: Tính số khoảng cách trên đường: lấy độ dài đường chia cho khoảng cách mỗi đoạn (100:10).<br><br>Bước 2: Vì trồng cả hai đầu, lấy số khoảng cách vừa tìm được <strong>cộng thêm 1</strong>.<br><br>Bẫy hay mắc: nếu đề nói chỉ trồng một đầu (đầu kia không trồng) thì không cộng thêm 1 — phải đọc kỹ đề bài mỗi lần.' },
         ],
         solution: 'Số khoảng cách trên đường là: 100 : 10 = 10 (khoảng). Vì trồng cả hai đầu nên số cây trồng được là: 10 + 1 = <strong>11 cây</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'So sánh hai phân số 3/5 và 2/5. Phân số nào lớn hơn?',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho hai phân số <strong>3/5</strong> và <strong>2/5</strong> — hai phân số này có <strong>mẫu số giống nhau</strong> (đều là 5).<br><br>Đề hỏi: phân số nào lớn hơn?' },
+          { t: 'Kiến thức cần dùng', b: 'Khi hai phân số có <strong>cùng mẫu số</strong>, phân số nào có <strong>tử số lớn hơn</strong> thì phân số đó lớn hơn.<br><br>Ví dụ dễ hơn: so sánh 4/7 và 2/7 — cùng mẫu 7, mà 4 > 2 nên 4/7 > 2/7.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Kiểm tra hai phân số có cùng mẫu số không — ở đây cùng là 5.<br><br>Bước 2: So sánh hai tử số 3 và 2.<br><br>Bước 3: Phân số có tử số lớn hơn là phân số lớn hơn.' },
+        ],
+        solution: 'Hai phân số cùng mẫu số 5, mà 3 > 2 nên <strong>3/5 lớn hơn 2/5</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Tính: 2/7 + 3/7',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho phép cộng hai phân số <strong>2/7</strong> và <strong>3/7</strong> — hai phân số này <strong>cùng mẫu số</strong> (đều là 7).' },
+          { t: 'Kiến thức cần dùng', b: 'Muốn cộng hai phân số <strong>cùng mẫu số</strong>, ta <strong>cộng hai tử số với nhau</strong> và <strong>giữ nguyên mẫu số</strong>.<br><br>Ví dụ dễ hơn: 1/6 + 2/6 = (1+2)/6 = 3/6.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Kiểm tra hai phân số có cùng mẫu số không — cùng là 7, làm được ngay.<br><br>Bước 2: Cộng hai tử số: 2 + 3.<br><br>Bước 3: Giữ nguyên mẫu số 7, viết kết quả thành phân số mới.' },
+        ],
+        solution: '2/7 + 3/7 = (2 + 3)/7 = <strong>5/7</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Một hình bình hành có độ dài đáy 12cm, chiều cao 6cm. Tính diện tích hình bình hành đó.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho hình bình hành có <strong>đáy 12cm</strong>, <strong>chiều cao 6cm</strong>.<br><br>Đề hỏi: <strong>diện tích</strong> hình bình hành đó.' },
+          { t: 'Kiến thức cần dùng', b: 'Công thức tính diện tích hình bình hành: <strong>diện tích = độ dài đáy × chiều cao</strong>.<br><br>Ví dụ dễ hơn: hình bình hành có đáy 5cm, cao 4cm thì diện tích là 5 × 4 = 20cm².' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Xác định độ dài đáy (12cm) và chiều cao (6cm).<br><br>Bước 2: Lấy hai số đó <strong>nhân</strong> với nhau.<br><br>Bước 3: Viết đơn vị "cm²" vào đáp số.' },
+        ],
+        solution: 'Diện tích hình bình hành là: 12 × 6 = <strong>72cm²</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Tổng của hai số là 63. Số thứ nhất gấp đôi số thứ hai. Tìm hai số đó.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho: <strong>tổng</strong> hai số là 63; số thứ nhất <strong>gấp đôi</strong> (gấp 2 lần) số thứ hai.<br><br>Đề hỏi: tìm cả hai số.' },
+          { t: 'Kiến thức cần dùng', b: 'Đây là dạng <strong>tổng và tỉ</strong>: nếu số thứ nhất gấp đôi số thứ hai, coi số thứ hai là <strong>1 phần</strong> thì số thứ nhất là <strong>2 phần</strong>, tổng cộng có <strong>3 phần bằng nhau</strong>.<br><br>Ví dụ dễ hơn: tổng hai số là 30, số lớn gấp đôi số bé — coi số bé 1 phần, số lớn 2 phần, tổng 3 phần = 30, mỗi phần = 10, số bé = 10, số lớn = 20.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Coi số thứ hai là 1 phần, số thứ nhất là 2 phần — tổng số phần là 1 + 2 = 3 phần.<br><br>Bước 2: Lấy tổng 63 <strong>chia</strong> cho 3 phần để tìm giá trị 1 phần (số thứ hai).<br><br>Bước 3: Lấy số thứ hai <strong>nhân đôi</strong> để ra số thứ nhất.' },
+        ],
+        solution: 'Tổng số phần: 1 + 2 = 3 phần. Giá trị 1 phần: 63 : 3 = 21. Số thứ hai là <strong>21</strong>, số thứ nhất là: 21 × 2 = <strong>42</strong>.',
       },
     ],
     5: [
@@ -1077,11 +1264,381 @@
         ],
         solution: 'Diện tích hình tam giác là: (12 × 8) : 2 = <strong>48cm²</strong>.',
       },
+      {
+        level: 'Cơ bản',
+        text: 'Tính: 45,8 − 12,35',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho phép trừ hai <strong>số thập phân</strong>: 45,8 và 12,35 — hai số này có <strong>số chữ số sau dấu phẩy khác nhau</strong> (45,8 có 1 chữ số, 12,35 có 2 chữ số).' },
+          { t: 'Kiến thức cần dùng', b: 'Muốn trừ hai số thập phân, viết chúng <strong>thẳng hàng theo dấu phẩy</strong> — nếu số nào ít chữ số thập phân hơn thì coi như có thêm chữ số 0 ở cuối cho đủ hàng.<br><br>Ví dụ dễ hơn: 7,4 = 7,40, nên 7,4 − 2,15 tính như 7,40 − 2,15.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Viết 45,8 thành 45,80 để đủ 2 chữ số thập phân như 12,35.<br><br>Bước 2: Đặt tính thẳng hàng theo dấu phẩy rồi trừ như số tự nhiên, từ phải sang trái.<br><br>Bước 3: Đặt dấu phẩy ở kết quả đúng thẳng cột với dấu phẩy hai số đã trừ.' },
+        ],
+        solution: '45,8 − 12,35 = 45,80 − 12,35 = <strong>33,45</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Tính: 3,5 × 4',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho phép nhân một <strong>số thập phân</strong> (3,5) với một <strong>số tự nhiên</strong> (4).' },
+          { t: 'Kiến thức cần dùng', b: 'Muốn nhân số thập phân với số tự nhiên, cứ <strong>nhân như số tự nhiên bình thường</strong> (tạm bỏ dấu phẩy), sau đó đếm số chữ số sau dấu phẩy ở số thập phân ban đầu rồi đặt dấu phẩy vào kết quả sao cho đủ số chữ số đó.<br><br>Ví dụ dễ hơn: 2,3 × 3 — nhân 23 × 3 = 69, số 2,3 có 1 chữ số sau dấu phẩy nên kết quả là 6,9.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Tạm coi 3,5 là 35, nhân bình thường: 35 × 4.<br><br>Bước 2: Đếm số chữ số thập phân ở 3,5 — có 1 chữ số (là số 5).<br><br>Bước 3: Đặt dấu phẩy vào kết quả sao cho có đúng 1 chữ số sau dấu phẩy.' },
+        ],
+        solution: '35 × 4 = 140. Vì 3,5 có 1 chữ số thập phân nên kết quả là <strong>14,0</strong>, tức <strong>14</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Một hình hộp chữ nhật có chiều dài 8cm, chiều rộng 5cm, chiều cao 4cm. Tính thể tích hình hộp chữ nhật đó.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho hình hộp chữ nhật có <strong>chiều dài 8cm</strong>, <strong>chiều rộng 5cm</strong>, <strong>chiều cao 4cm</strong>.<br><br>Đề hỏi: <strong>thể tích</strong> hình hộp chữ nhật đó.' },
+          { t: 'Kiến thức cần dùng', b: 'Công thức tính thể tích hình hộp chữ nhật: <strong>thể tích = chiều dài × chiều rộng × chiều cao</strong>.<br><br>Ví dụ dễ hơn: hình hộp dài 2cm, rộng 3cm, cao 4cm có thể tích 2×3×4=24cm³.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Nhân chiều dài với chiều rộng trước: 8 × 5.<br><br>Bước 2: Lấy kết quả đó <strong>nhân tiếp</strong> với chiều cao (4).<br><br>Bước 3: Viết đơn vị thể tích là "cm³" (xăng-ti-mét khối), khác với đơn vị diện tích "cm²".' },
+        ],
+        solution: 'Thể tích hình hộp chữ nhật là: 8 × 5 × 4 = <strong>160cm³</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Hai ô tô xuất phát cùng lúc từ hai điểm A và B cách nhau 180km, đi ngược chiều nhau để gặp nhau. Vận tốc ô tô thứ nhất là 50km/giờ, vận tốc ô tô thứ hai là 40km/giờ. Hỏi sau bao lâu hai ô tô gặp nhau?',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho: quãng đường AB dài <strong>180km</strong>; hai xe xuất phát <strong>cùng lúc</strong>, đi <strong>ngược chiều</strong> (tiến lại gần nhau); vận tốc lần lượt là <strong>50km/giờ</strong> và <strong>40km/giờ</strong>.<br><br>Đề hỏi: sau bao lâu hai xe gặp nhau?' },
+          { t: 'Kiến thức cần dùng', b: 'Khi hai xe đi <strong>ngược chiều</strong> để gặp nhau, khoảng cách giữa chúng giảm dần với tốc độ bằng <strong>tổng hai vận tốc</strong> cộng lại. Thời gian gặp nhau = quãng đường ban đầu : tổng hai vận tốc.<br><br>Ví dụ dễ hơn: hai xe cách nhau 100km, đi ngược chiều với vận tốc 30km/giờ và 20km/giờ, tổng vận tốc là 50km/giờ, gặp nhau sau 100:50=2 giờ.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Tính tổng hai vận tốc: 50 + 40.<br><br>Bước 2: Lấy quãng đường AB (180km) <strong>chia</strong> cho tổng vận tốc vừa tìm được.<br><br>Bước 3: Viết đơn vị "giờ" vào đáp số.' },
+        ],
+        solution: 'Tổng hai vận tốc: 50 + 40 = 90 (km/giờ). Thời gian hai xe gặp nhau: 180 : 90 = <strong>2 giờ</strong>.',
+      },
+    ],
+    // ---- THCS (lớp 6-9) — thêm mới, không đụng vào kho lớp 1-5 ở trên ----
+    6: [
+      {
+        level: 'Cơ bản',
+        text: 'Tính: (−15) + 8',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho phép cộng hai <strong>số nguyên</strong>: −15 (số âm) và 8 (số dương).' },
+          { t: 'Kiến thức cần dùng', b: 'Cộng hai số nguyên khác dấu: lấy <strong>số lớn hơn (về giá trị tuyệt đối) trừ số nhỏ hơn</strong>, rồi giữ dấu của số có giá trị tuyệt đối lớn hơn.<br><br>Ví dụ dễ hơn: (−5) + 3 — vì |−5| = 5 lớn hơn |3| = 3, lấy 5 − 3 = 2, giữ dấu âm, kết quả là −2.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: So sánh |−15| = 15 và |8| = 8 — 15 lớn hơn.<br><br>Bước 2: Lấy 15 − 8 = 7.<br><br>Bước 3: Giữ dấu của số có giá trị tuyệt đối lớn hơn (−15 âm), nên kết quả mang dấu âm.' },
+        ],
+        solution: '(−15) + 8 = <strong>−7</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Tính: 24 : (−6)',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho phép chia một số dương (24) cho một số âm (−6).' },
+          { t: 'Kiến thức cần dùng', b: 'Chia hai số nguyên <strong>khác dấu</strong>: lấy giá trị tuyệt đối chia cho nhau, kết quả mang <strong>dấu âm</strong>.<br><br>Ví dụ dễ hơn: 10 : (−2) = −5 (10:2=5, khác dấu nên kết quả âm).' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Chia giá trị tuyệt đối: 24 : 6 = 4.<br><br>Bước 2: Vì 24 dương và −6 âm (khác dấu), kết quả mang dấu âm.' },
+        ],
+        solution: '24 : (−6) = <strong>−4</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Tìm x, biết: x − 12 = −20',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho phép trừ: x − 12 = −20. Đề hỏi: x bằng bao nhiêu?' },
+          { t: 'Kiến thức cần dùng', b: 'Muốn tìm số bị trừ (x), lấy <strong>hiệu cộng với số trừ</strong>: x = hiệu + 12.<br><br>Ví dụ dễ hơn: x − 5 = −3 thì x = −3 + 5 = 2.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Chuyển −12 sang vế phải thành +12: x = −20 + 12.<br><br>Bước 2: Cộng hai số nguyên khác dấu như bài trước.' },
+        ],
+        solution: 'x = −20 + 12 = <strong>−8</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Một cửa hàng có 40kg gạo, đã bán 25% số gạo đó. Hỏi cửa hàng đã bán bao nhiêu ki-lô-gam gạo?',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho: tổng có <strong>40kg gạo</strong>, đã bán <strong>25%</strong> số đó.<br><br>Đề hỏi: số ki-lô-gam đã bán.' },
+          { t: 'Kiến thức cần dùng', b: 'Muốn tính a% của một số, đổi a% thành phân số (a/100) rồi <strong>nhân</strong> với số đó.<br><br>Ví dụ dễ hơn: 10% của 50 là 50 × 10/100 = 5.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Đổi 25% thành phân số: 25/100.<br><br>Bước 2: Lấy 40 × 25/100 = 40 × 0,25.' },
+        ],
+        solution: '40 × 25% = 40 × 0,25 = <strong>10kg</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'So sánh hai số nguyên −3 và −8. Số nào lớn hơn?',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho hai số nguyên âm: −3 và −8. Đề hỏi: số nào lớn hơn?' },
+          { t: 'Kiến thức cần dùng', b: 'Trên trục số, số nào nằm <strong>bên phải</strong> thì lớn hơn. Với hai số âm, số nào có giá trị tuyệt đối <strong>nhỏ hơn</strong> thì lớn hơn (gần 0 hơn).<br><br>Ví dụ dễ hơn: −2 lớn hơn −5, vì −2 gần 0 hơn.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: So sánh giá trị tuyệt đối: |−3| = 3, |−8| = 8.<br><br>Bước 2: 3 nhỏ hơn 8, nên −3 gần 0 hơn, tức là −3 lớn hơn −8.' },
+        ],
+        solution: 'Vì |−3| < |−8| nên <strong>−3</strong> lớn hơn −8.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Một hình chữ nhật có chiều dài 12cm, chiều rộng 7cm. Tính chu vi hình đó.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho hình chữ nhật: chiều dài 12cm, chiều rộng 7cm. Đề hỏi chu vi.' },
+          { t: 'Kiến thức cần dùng', b: 'Công thức chu vi hình chữ nhật: <strong>(chiều dài + chiều rộng) × 2</strong>.<br><br>Ví dụ dễ hơn: hình chữ nhật dài 5cm rộng 3cm có chu vi (5+3)×2=16cm.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Cộng chiều dài và chiều rộng: 12 + 7.<br><br>Bước 2: Nhân kết quả với 2.' },
+        ],
+        solution: 'Chu vi = (12 + 7) × 2 = <strong>38cm</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Nhiệt độ buổi sáng là −3°C, đến trưa tăng thêm 8°C. Hỏi nhiệt độ buổi trưa là bao nhiêu?',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho: nhiệt độ sáng là <strong>−3°C</strong>, <strong>tăng thêm</strong> 8°C vào trưa.<br><br>Đề hỏi: nhiệt độ buổi trưa.' },
+          { t: 'Kiến thức cần dùng', b: '"Tăng thêm" nghĩa là <strong>cộng</strong> vào. Cộng số nguyên âm với số nguyên dương làm như các bài trước: so giá trị tuyệt đối.<br><br>Ví dụ dễ hơn: −2°C tăng thêm 5°C thành −2+5=3°C.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Viết phép cộng: −3 + 8.<br><br>Bước 2: |8| = 8 lớn hơn |−3| = 3, lấy 8 − 3 = 5, mang dấu dương (vì 8 dương lớn hơn).' },
+        ],
+        solution: '−3 + 8 = <strong>5°C</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Tính: (−7) × (−5)',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho phép nhân hai số nguyên <strong>cùng âm</strong>: −7 và −5.' },
+          { t: 'Kiến thức cần dùng', b: 'Nhân hai số nguyên <strong>cùng dấu</strong> (cùng âm hoặc cùng dương) cho kết quả <strong>dương</strong>. Nhân khác dấu cho kết quả âm.<br><br>Ví dụ dễ hơn: (−2) × (−3) = 6 (cùng âm, kết quả dương).' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Nhân giá trị tuyệt đối: 7 × 5 = 35.<br><br>Bước 2: Hai số cùng dấu âm nên kết quả mang dấu dương.' },
+        ],
+        solution: '(−7) × (−5) = <strong>35</strong>.',
+      },
+    ],
+    7: [
+      {
+        level: 'Cơ bản',
+        text: 'Tính: −3/4 + 1/2 (viết kết quả dưới dạng số thập phân)',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho phép cộng hai phân số khác mẫu số: −3/4 và 1/2, yêu cầu đổi kết quả ra số thập phân.' },
+          { t: 'Kiến thức cần dùng', b: 'Muốn cộng hai phân số khác mẫu, phải <strong>quy đồng mẫu số</strong> trước, rồi cộng như phân số cùng mẫu. Sau đó đổi phân số ra thập phân bằng cách lấy tử chia mẫu.<br><br>Ví dụ dễ hơn: 1/2 + 1/4 = 2/4 + 1/4 = 3/4 = 0,75 (3 chia 4).' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Quy đồng: 1/2 = 2/4.<br><br>Bước 2: Cộng: −3/4 + 2/4 = −1/4.<br><br>Bước 3: Đổi −1/4 ra thập phân: −1 : 4 = −0,25.' },
+        ],
+        solution: '−3/4 + 2/4 = −1/4 = <strong>−0,25</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Tìm x trong tỉ lệ thức: x/4 = 15/20',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho một <strong>tỉ lệ thức</strong> (hai tỉ số bằng nhau): x/4 = 15/20. Đề hỏi x.' },
+          { t: 'Kiến thức cần dùng', b: 'Trong tỉ lệ thức a/b = c/d, ta có <strong>tích chéo bằng nhau</strong>: a × d = b × c.<br><br>Ví dụ dễ hơn: x/3 = 6/9, tích chéo x × 9 = 3 × 6 = 18, nên x = 18:9 = 2.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Tích chéo: x × 20 = 4 × 15.<br><br>Bước 2: Tính vế phải: 4 × 15 = 60.<br><br>Bước 3: Tìm x: x = 60 : 20.' },
+        ],
+        solution: 'x × 20 = 60, nên x = 60 : 20 = <strong>3</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Một tam giác có hai góc lần lượt là 50° và 70°. Tính góc còn lại.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho tam giác có hai góc: 50° và 70°. Đề hỏi góc thứ ba.' },
+          { t: 'Kiến thức cần dùng', b: '<strong>Tổng ba góc trong một tam giác luôn bằng 180°</strong>.<br><br>Ví dụ dễ hơn: tam giác có hai góc 60° và 60° thì góc còn lại là 180−60−60=60°.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Cộng hai góc đã biết: 50 + 70.<br><br>Bước 2: Lấy 180 trừ đi tổng đó.' },
+        ],
+        solution: 'Góc còn lại = 180 − (50 + 70) = 180 − 120 = <strong>60°</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Hai đại lượng x và y tỉ lệ thuận, biết x = 3 thì y = 12. Hỏi khi x = 7 thì y bằng bao nhiêu?',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho x, y <strong>tỉ lệ thuận</strong> (y = k × x), biết một cặp giá trị (x=3, y=12). Đề hỏi y khi x=7.' },
+          { t: 'Kiến thức cần dùng', b: 'Tìm hệ số tỉ lệ k = y : x trước, rồi dùng công thức y = k × x cho giá trị mới.<br><br>Ví dụ dễ hơn: x=2,y=6 thì k=3; khi x=5, y=3×5=15.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Tìm k = 12 : 3 = 4.<br><br>Bước 2: Tính y mới = k × 7 = 4 × 7.' },
+        ],
+        solution: 'k = 12:3 = 4. Khi x=7: y = 4 × 7 = <strong>28</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Tính: (−2/3) × (3/5)',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho phép nhân hai phân số: −2/3 và 3/5.' },
+          { t: 'Kiến thức cần dùng', b: 'Nhân hai phân số: lấy <strong>tử nhân tử, mẫu nhân mẫu</strong>, sau đó rút gọn nếu được.<br><br>Ví dụ dễ hơn: 1/2 × 2/3 = 2/6 = 1/3.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Nhân tử: (−2) × 3 = −6. Nhân mẫu: 3 × 5 = 15.<br><br>Bước 2: Rút gọn −6/15 (chia cả hai cho 3).' },
+        ],
+        solution: '(−2×3)/(3×5) = −6/15 = <strong>−2/5</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Ba lớp 7A, 7B, 7C có số học sinh tỉ lệ với 3:4:5, tổng số học sinh ba lớp là 120. Tính số học sinh lớp 7A.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho tỉ lệ số học sinh 3 lớp là <strong>3:4:5</strong>, tổng cộng <strong>120</strong> học sinh. Đề hỏi số học sinh lớp 7A (phần ứng với số 3).' },
+          { t: 'Kiến thức cần dùng', b: 'Chia tổng theo tỉ lệ: cộng các phần tỉ lệ lại để ra <strong>tổng số phần</strong>, rồi lấy tổng chia cho số phần để ra giá trị 1 phần.<br><br>Ví dụ dễ hơn: chia 60 theo tỉ lệ 1:2, tổng phần=3, 1 phần=20, phần đầu=20, phần sau=40.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Tổng số phần: 3+4+5=12.<br><br>Bước 2: Giá trị 1 phần: 120:12=10.<br><br>Bước 3: Lớp 7A có 3 phần: 3×10.' },
+        ],
+        solution: 'Tổng phần = 12, 1 phần = 120:12 = 10. Lớp 7A = 3 × 10 = <strong>30 học sinh</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Tìm giá trị tuyệt đối của −9/2 (viết kết quả dưới dạng số thập phân)',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề hỏi giá trị tuyệt đối của phân số âm −9/2, yêu cầu viết kết quả dưới dạng số thập phân.' },
+          { t: 'Kiến thức cần dùng', b: 'Giá trị tuyệt đối của một số là <strong>khoảng cách từ số đó tới 0</strong>, luôn không âm — bỏ dấu âm đi (nếu có). Sau đó đổi phân số ra thập phân bằng cách lấy tử chia mẫu.<br><br>Ví dụ dễ hơn: |−5| = 5. Còn 9/2 = 9 : 2 = 4,5.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Bỏ dấu âm trước phân số: 9/2.<br><br>Bước 2: Đổi ra thập phân: 9 : 2 = 4,5.' },
+        ],
+        solution: '|−9/2| = 9/2 = <strong>4,5</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Cho tam giác ABC cân tại A (AB = AC), biết góc A = 40°. Tính góc B.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho tam giác <strong>cân tại A</strong> (AB=AC), góc A = 40°. Đề hỏi góc B.' },
+          { t: 'Kiến thức cần dùng', b: 'Tam giác cân có <strong>hai góc đáy bằng nhau</strong> (ở đây là góc B và góc C). Kết hợp với tổng ba góc = 180° để tìm góc đáy.<br><br>Ví dụ dễ hơn: tam giác cân có góc đỉnh 60° thì hai góc đáy bằng nhau và bằng (180−60):2=60° (tam giác đều).' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Tổng hai góc đáy: 180 − 40 = 140.<br><br>Bước 2: Vì hai góc đáy bằng nhau, chia đôi: 140 : 2.' },
+        ],
+        solution: 'Tổng hai góc đáy = 180−40 = 140°. Góc B = 140 : 2 = <strong>70°</strong>.',
+      },
+    ],
+    8: [
+      {
+        level: 'Cơ bản',
+        text: 'Giải phương trình: 3x + 5 = 20',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho phương trình bậc nhất một ẩn: 3x + 5 = 20. Đề hỏi x.' },
+          { t: 'Kiến thức cần dùng', b: 'Chuyển các số hạng không chứa x sang vế phải (đổi dấu), rồi chia để tìm x.<br><br>Ví dụ dễ hơn: 2x+3=11 → 2x=11−3=8 → x=4.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Chuyển 5 sang vế phải: 3x = 20 − 5.<br><br>Bước 2: Tính vế phải: 3x = 15.<br><br>Bước 3: Chia hai vế cho 3: x = 15 : 3.' },
+        ],
+        solution: '3x = 20−5 = 15. x = 15:3 = <strong>5</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Tính nhanh 99² bằng cách dùng hằng đẳng thức (a−b)².',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề yêu cầu tính 99² (99 nhân 99) một cách nhanh, dùng hằng đẳng thức thay vì nhân tay.' },
+          { t: 'Kiến thức cần dùng', b: 'Viết 99 = 100 − 1, dùng hằng đẳng thức <strong>(a−b)² = a² − 2ab + b²</strong> với a=100, b=1.<br><br>Ví dụ dễ hơn: 9² = (10−1)² = 100−20+1=81.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: 99² = (100−1)² = 100² − 2×100×1 + 1².<br><br>Bước 2: Tính từng phần: 10000 − 200 + 1.' },
+        ],
+        solution: '99² = 10000 − 200 + 1 = <strong>9801</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Một tam giác vuông có hai cạnh góc vuông là 6cm và 8cm. Tính cạnh huyền.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho tam giác vuông, hai cạnh góc vuông là 6cm và 8cm. Đề hỏi cạnh huyền (cạnh dài nhất, đối diện góc vuông).' },
+          { t: 'Kiến thức cần dùng', b: '<strong>Định lý Pytago</strong>: bình phương cạnh huyền bằng tổng bình phương hai cạnh góc vuông.<br><br>Ví dụ dễ hơn: cạnh góc vuông 3cm, 4cm thì cạnh huyền = √(9+16)=√25=5cm.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Tính bình phương từng cạnh: 6²=36, 8²=64.<br><br>Bước 2: Cộng lại: 36+64=100.<br><br>Bước 3: Lấy căn bậc hai của 100.' },
+        ],
+        solution: 'Cạnh huyền = √(6²+8²) = √100 = <strong>10cm</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Giải phương trình: 2(x − 3) = x + 4',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho phương trình có dấu ngoặc: 2(x−3) = x+4. Đề hỏi x.' },
+          { t: 'Kiến thức cần dùng', b: 'Phá ngoặc trước (nhân phân phối), rồi chuyển các số hạng chứa x về một vế, số không chứa x về vế kia.<br><br>Ví dụ dễ hơn: 2(x+1)=x+5 → 2x+2=x+5 → 2x−x=5−2 → x=3.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Phá ngoặc vế trái: 2x − 6 = x + 4.<br><br>Bước 2: Chuyển x sang trái, số sang phải: 2x − x = 4 + 6.<br><br>Bước 3: Tính: x = 10.' },
+        ],
+        solution: '2x−6=x+4 → 2x−x=4+6 → x=<strong>10</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Một hình thoi có hai đường chéo dài 6cm và 8cm. Tính diện tích.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho hình thoi có hai đường chéo 6cm và 8cm. Đề hỏi diện tích.' },
+          { t: 'Kiến thức cần dùng', b: 'Diện tích hình thoi = <strong>(tích hai đường chéo) : 2</strong>.<br><br>Ví dụ dễ hơn: hình thoi có 2 đường chéo 4cm, 5cm thì diện tích = (4×5):2=10cm².' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Nhân hai đường chéo: 6×8=48.<br><br>Bước 2: Chia cho 2.' },
+        ],
+        solution: 'Diện tích = (6×8):2 = 48:2 = <strong>24cm²</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Phân tích đa thức thành nhân tử: x² − 9. Kết quả có dạng (x−a)(x+a), tìm a.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho đa thức x²−9, yêu cầu phân tích thành tích (x−a)(x+a) và tìm a.' },
+          { t: 'Kiến thức cần dùng', b: 'Hằng đẳng thức <strong>hiệu hai bình phương</strong>: A² − B² = (A−B)(A+B). Ở đây x² là A², 9 = 3² là B².<br><br>Ví dụ dễ hơn: x²−16 = (x−4)(x+4), vì 16=4².' },
+          { t: 'Hướng làm bài này', b: 'Nhận ra 9 = 3², nên x²−9 = (x−3)(x+3), so với dạng (x−a)(x+a) thì a=3.' },
+        ],
+        solution: 'x²−9 = (x−3)(x+3), vậy a = <strong>3</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Tính diện tích hình thang có đáy lớn 10cm, đáy nhỏ 6cm, chiều cao 5cm.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho hình thang: đáy lớn 10cm, đáy nhỏ 6cm, chiều cao 5cm. Đề hỏi diện tích.' },
+          { t: 'Kiến thức cần dùng', b: 'Diện tích hình thang = <strong>(đáy lớn + đáy nhỏ) × chiều cao : 2</strong>.<br><br>Ví dụ dễ hơn: đáy lớn 8, đáy nhỏ 4, cao 3 thì diện tích=(8+4)×3:2=18.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Cộng hai đáy: 10+6=16.<br><br>Bước 2: Nhân với chiều cao: 16×5=80.<br><br>Bước 3: Chia cho 2.' },
+        ],
+        solution: 'Diện tích = (10+6)×5:2 = 80:2 = <strong>40cm²</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Tìm x, biết x² = 49 và x là số dương.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho x²=49, x là số dương. Đề hỏi x.' },
+          { t: 'Kiến thức cần dùng', b: 'x² = 49 nghĩa là x là <strong>căn bậc hai</strong> của 49. Vì đề yêu cầu x dương, chỉ lấy nghiệm dương.<br><br>Ví dụ dễ hơn: x²=16, x dương thì x=4 (vì 4×4=16).' },
+          { t: 'Hướng làm bài này', b: 'Tìm số dương mà bình phương lên bằng 49 — thử 7: 7×7=49, đúng.' },
+        ],
+        solution: 'Vì 7×7=49, nên x = <strong>7</strong>.',
+      },
+    ],
+    9: [
+      {
+        level: 'Cơ bản',
+        text: 'Tính: √16 + √9',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho tổng hai căn bậc hai: √16 và √9.' },
+          { t: 'Kiến thức cần dùng', b: 'Tính từng căn bậc hai trước (tìm số mà bình phương lên bằng số dưới dấu căn), rồi mới cộng.<br><br>Ví dụ dễ hơn: √4 + √1 = 2 + 1 = 3.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: √16 = 4 (vì 4×4=16). √9 = 3 (vì 3×3=9).<br><br>Bước 2: Cộng: 4 + 3.' },
+        ],
+        solution: '√16 + √9 = 4 + 3 = <strong>7</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Giải phương trình bậc hai: x² − 5x + 6 = 0. Nghiệm nhỏ hơn là bao nhiêu?',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho phương trình bậc hai x²−5x+6=0, có hai nghiệm. Đề hỏi nghiệm nhỏ hơn.' },
+          { t: 'Kiến thức cần dùng', b: 'Có thể phân tích thành nhân tử: tìm hai số có <strong>tích bằng 6, tổng bằng 5</strong> (đó là 2 và 3), viết thành (x−2)(x−3)=0.<br><br>Ví dụ dễ hơn: x²−3x+2=0, tìm hai số tích=2 tổng=3 là 1 và 2, phương trình thành (x−1)(x−2)=0, nghiệm x=1 hoặc x=2.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Tìm hai số có tích=6, tổng=5 — đó là 2 và 3.<br><br>Bước 2: Viết x²−5x+6=(x−2)(x−3)=0, nên x=2 hoặc x=3.<br><br>Bước 3: Nghiệm nhỏ hơn là 2.' },
+        ],
+        solution: 'x²−5x+6=(x−2)(x−3)=0, nghiệm là x=2 hoặc x=3. Nghiệm nhỏ hơn là <strong>2</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Tính: √81 − √16',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho hiệu hai căn bậc hai: √81 và √16.' },
+          { t: 'Kiến thức cần dùng', b: 'Tính từng căn bậc hai trước rồi mới trừ — không được trừ trước rồi mới lấy căn.<br><br>Ví dụ dễ hơn: √25 − √4 = 5 − 2 = 3.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: √81 = 9 (vì 9×9=81). √16 = 4 (vì 4×4=16).<br><br>Bước 2: Trừ: 9 − 4.' },
+        ],
+        solution: '√81 − √16 = 9 − 4 = <strong>5</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Giải hệ phương trình: x + y = 7 và x − y = 1. Tìm x.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho hệ hai phương trình bậc nhất hai ẩn x, y. Đề hỏi x.' },
+          { t: 'Kiến thức cần dùng', b: '<strong>Cộng đại số</strong>: cộng vế với vế hai phương trình để triệt tiêu y (vì +y và −y cộng lại bằng 0), ra phương trình chỉ còn x.<br><br>Ví dụ dễ hơn: x+y=5, x−y=1 → cộng lại: 2x=6 → x=3.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Cộng hai phương trình: (x+y)+(x−y) = 7+1.<br><br>Bước 2: Rút gọn vế trái: 2x = 8.<br><br>Bước 3: Tìm x = 8:2.' },
+        ],
+        solution: '2x = 7+1 = 8, nên x = 8:2 = <strong>4</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Một tam giác vuông có góc nhọn 30°, cạnh huyền dài 10cm. Tính cạnh đối diện góc 30° (biết sin 30° = 1/2).',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho tam giác vuông có góc nhọn 30°, cạnh huyền 10cm, và cho biết sin 30° = 1/2. Đề hỏi cạnh đối diện góc 30°.' },
+          { t: 'Kiến thức cần dùng', b: 'Trong tam giác vuông: <strong>sin(góc) = cạnh đối : cạnh huyền</strong>. Suy ra cạnh đối = sin(góc) × cạnh huyền.<br><br>Ví dụ dễ hơn: góc 30°, cạnh huyền 6cm thì cạnh đối = 1/2 × 6 = 3cm.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Áp dụng công thức: cạnh đối = sin 30° × cạnh huyền.<br><br>Bước 2: Thay số: 1/2 × 10.' },
+        ],
+        solution: 'Cạnh đối = 1/2 × 10 = <strong>5cm</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Cho phương trình x² − 7x + 10 = 0. Tính tổng hai nghiệm bằng định lý Vi-ét.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho phương trình bậc hai x²−7x+10=0, yêu cầu tính tổng hai nghiệm bằng Vi-ét (không cần giải ra từng nghiệm).' },
+          { t: 'Kiến thức cần dùng', b: '<strong>Định lý Vi-ét</strong>: với phương trình ax²+bx+c=0 (a≠0), tổng hai nghiệm = −b/a.<br><br>Ví dụ dễ hơn: x²−4x+3=0 có a=1,b=−4, tổng hai nghiệm = −(−4)/1=4.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Xác định a=1, b=−7 trong phương trình.<br><br>Bước 2: Tính tổng = −b/a = −(−7)/1.' },
+        ],
+        solution: 'Tổng hai nghiệm = −b/a = −(−7)/1 = <strong>7</strong>.',
+      },
+      {
+        level: 'Cơ bản',
+        text: 'Tính giá trị hàm số y = 2x² tại x = 3.',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho hàm số y=2x², yêu cầu tính y khi x=3 (thay số vào công thức).' },
+          { t: 'Kiến thức cần dùng', b: 'Thay giá trị x vào công thức, tính theo đúng thứ tự: <strong>bình phương trước, nhân sau</strong>.<br><br>Ví dụ dễ hơn: y=3x² tại x=2: y=3×2²=3×4=12.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Tính x²=3²=9.<br><br>Bước 2: Nhân với 2: y=2×9.' },
+        ],
+        solution: 'y = 2 × 3² = 2 × 9 = <strong>18</strong>.',
+      },
+      {
+        level: 'Nâng cao',
+        text: 'Một đường tròn có bán kính 5cm. Tính chu vi đường tròn đó (lấy π ≈ 3,14).',
+        teach: [
+          { t: 'Đọc kỹ đề', b: 'Đề cho đường tròn bán kính 5cm, π≈3,14. Đề hỏi chu vi.' },
+          { t: 'Kiến thức cần dùng', b: 'Công thức chu vi đường tròn: <strong>C = 2 × π × bán kính</strong>.<br><br>Ví dụ dễ hơn: bán kính 2cm thì chu vi = 2×3,14×2=12,56cm.' },
+          { t: 'Hướng làm bài này', b: 'Bước 1: Nhân 2 × 3,14 = 6,28.<br><br>Bước 2: Nhân tiếp với bán kính: 6,28 × 5.' },
+        ],
+        solution: 'C = 2 × 3,14 × 5 = <strong>31,4cm</strong>.',
+      },
     ],
   };
 
   const giftedGradePicker = $('giftedGradePicker');
   const giftedGradeRow = $('giftedGradeRow');
+  const giftedGradeRowTHCS = $('giftedGradeRowTHCS');
   const giftedProblemList = $('giftedProblemList');
   let giftedCurrentGrade = null;
 
@@ -1110,19 +1667,20 @@
     return { answer: value, decimal: numStr.includes('.') };
   }
 
-  function giftedDoneKey(grade) { return `mathgame_gifted_done_${grade}`; }
-  function giftedDoneSet(grade) {
-    try {
-      const raw = JSON.parse(localStorage.getItem(giftedDoneKey(grade)) || '[]');
-      return new Set(Array.isArray(raw) ? raw : []);
-    } catch (e) { return new Set(); }
-  }
-  function giftedMarkDone(grade, idx) {
-    const s = giftedDoneSet(grade);
-    if (s.has(idx)) return false;
-    s.add(idx);
-    localStorage.setItem(giftedDoneKey(grade), JSON.stringify([...s]));
-    return true;
+  // Ôn học sinh giỏi chạy như một phiên luyện tập liên tục: hiện từng bài
+  // một (không phải cuộn xem hết 9 bài như bản cũ), bài kế tiếp được chọn
+  // NGẪU NHIÊN từ kho bài của lớp đó sau mỗi lần chấm — không bao giờ hết,
+  // tránh lặp lại đúng bài vừa làm.
+  let giftedScore = 0;
+  let giftedStreak = 0;
+  let giftedLastIdx = -1;
+
+  function giftedPickIndex(problems) {
+    if (problems.length <= 1) return 0;
+    let idx;
+    do { idx = Math.floor(Math.random() * problems.length); } while (idx === giftedLastIdx);
+    giftedLastIdx = idx;
+    return idx;
   }
 
   function giftedRenderProblems(grade) {
@@ -1130,25 +1688,36 @@
     giftedGradePicker.hidden = true;
     giftedProblemList.hidden = false;
     giftedProblemList.innerHTML = '';
+    giftedScore = 0;
+    giftedStreak = 0;
+    giftedLastIdx = -1;
 
     const problems = GIFTED_PROBLEMS[grade] || [];
-    const progressWrap = document.createElement('div');
-    progressWrap.className = 'gifted-progress';
-    progressWrap.innerHTML = `
-      <div class="gifted-progress-track"><div class="gifted-progress-fill" id="giftedProgressFill"></div></div>
-      <p class="gifted-progress-text" id="giftedProgressText"></p>
+    const scoreWrap = document.createElement('div');
+    scoreWrap.className = 'gifted-score';
+    scoreWrap.innerHTML = `
+      <span class="gifted-score-pill"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg><span id="giftedScoreVal">0</span></span>
+      <span class="gifted-streak-pill"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg><span id="giftedStreakVal">0</span></span>
     `;
-    giftedProblemList.appendChild(progressWrap);
-    const progressFill = progressWrap.querySelector('#giftedProgressFill');
-    const progressText = progressWrap.querySelector('#giftedProgressText');
-    function updateProgress() {
-      const done = giftedDoneSet(grade).size;
-      progressText.textContent = `Đã học ${done}/${problems.length} bài`;
-      progressFill.style.width = (problems.length ? (done / problems.length * 100) : 0) + '%';
-    }
-    updateProgress();
+    giftedProblemList.appendChild(scoreWrap);
+    const scoreVal = scoreWrap.querySelector('#giftedScoreVal');
+    const streakVal = scoreWrap.querySelector('#giftedStreakVal');
 
-    problems.forEach((p, i) => {
+    const cardHolder = document.createElement('div');
+    giftedProblemList.appendChild(cardHolder);
+
+    if (!problems.length) {
+      cardHolder.innerHTML = '<p class="gifted-question">Lớp này chưa có bài ôn học sinh giỏi.</p>';
+      return;
+    }
+
+    function loadNextProblem() {
+      const i = giftedPickIndex(problems);
+      renderCard(problems[i], i);
+    }
+
+    function renderCard(p, i) {
+      cardHolder.innerHTML = '';
       const card = document.createElement('div');
       card.className = 'gifted-card';
       const levelClass = p.level === 'Nâng cao' ? 'gifted-level-advanced' : 'gifted-level-basic';
@@ -1157,10 +1726,7 @@
       card.innerHTML = `
         <div class="gifted-card-head">
           <span class="gifted-level ${levelClass}">${p.level}</span>
-          <span class="gifted-head-right">
-            <span class="gifted-done-badge" hidden>✓ Đã học</span>
-            <span class="gifted-num">Bài ${i + 1}</span>
-          </span>
+          <span class="gifted-num">Bài ${i + 1}</span>
         </div>
         <p class="gifted-question">${p.text}</p>
         <button type="button" class="gifted-learn-btn">Học cách làm</button>
@@ -1174,10 +1740,12 @@
         <div class="gifted-selfcheck" hidden>
           <p class="gifted-selfcheck-title">🧠 Con thử tính xem đáp số là bao nhiêu?</p>
           <div class="gifted-selfcheck-choices"></div>
+          <button type="button" class="gifted-confirm-btn" disabled>Xác nhận</button>
         </div>
         <button type="button" class="gifted-reveal-btn" hidden>Xem lời giải</button>
         <p class="gifted-locked-note">Xem hết phần hướng dẫn thì nút lời giải mới hiện ra.</p>
         <p class="gifted-solution" hidden>${p.solution}</p>
+        <button type="button" class="gifted-next-btn" hidden>Bài tiếp theo →</button>
       `;
 
       const learnBtn = card.querySelector('.gifted-learn-btn');
@@ -1186,21 +1754,20 @@
       const countEl = card.querySelector('.gifted-step-count');
       const titleEl = card.querySelector('.gifted-step-title');
       const bodyEl = card.querySelector('.gifted-step-body');
-      const nextBtn = card.querySelector('.gifted-step-next');
+      const nextStepBtn = card.querySelector('.gifted-step-next');
       const selfCheckBox = card.querySelector('.gifted-selfcheck');
       const selfCheckChoices = card.querySelector('.gifted-selfcheck-choices');
+      const confirmBtn = card.querySelector('.gifted-confirm-btn');
       const revealBtn = card.querySelector('.gifted-reveal-btn');
       const noteEl = card.querySelector('.gifted-locked-note');
       const solutionEl = card.querySelector('.gifted-solution');
-      const doneBadge = card.querySelector('.gifted-done-badge');
-
-      if (giftedDoneSet(grade).has(i)) doneBadge.hidden = false;
+      const nextProblemBtn = card.querySelector('.gifted-next-btn');
 
       // Chỉ mở nút lời giải sau khi học sinh đã xem hết các bước hướng dẫn
       // (và, nếu có, trả lời xong phần tự thử sức bên dưới).
       let stepIdx = 0;
       let unlocked = steps.length === 0;
-      if (unlocked) { learnBtn.hidden = true; revealBtn.hidden = false; noteEl.hidden = true; }
+      if (unlocked) { learnBtn.hidden = true; revealBtn.hidden = false; noteEl.hidden = true; nextProblemBtn.hidden = false; }
 
       dotsEl.innerHTML = steps.map(() => '<i></i>').join('');
       const dots = Array.from(dotsEl.children);
@@ -1210,7 +1777,7 @@
         countEl.textContent = `Bước ${stepIdx + 1}/${steps.length}`;
         titleEl.textContent = s.t;
         bodyEl.innerHTML = s.b;
-        nextBtn.textContent = stepIdx < steps.length - 1 ? 'Đã hiểu, bước tiếp theo' : 'Đã hiểu hết';
+        nextStepBtn.textContent = stepIdx < steps.length - 1 ? 'Đã hiểu, bước tiếp theo' : 'Đã hiểu hết';
         dots.forEach((d, k) => d.classList.toggle('on', k <= stepIdx));
       }
 
@@ -1222,41 +1789,67 @@
         revealBtn.hidden = false;
         learnBtn.hidden = false;
         learnBtn.textContent = 'Xem lại hướng dẫn';
+        nextProblemBtn.hidden = false;
       }
 
+      // Chọn đáp án trước (chỉ tô sáng, chưa chấm) — bấm Xác nhận mới thật
+      // sự chấm điểm, tránh chấm hớ khi lỡ tay bấm nhầm.
       function renderSelfCheck() {
         selfCheckBox.hidden = false;
         selfCheckChoices.innerHTML = '';
         const distractors = makeDistractors(selfCheck.answer, selfCheck.decimal);
         const choices = [selfCheck.answer, ...distractors].sort(() => Math.random() - 0.5);
-        let answered = false;
+        let selected = null;
+        let graded = false;
         choices.forEach((choice) => {
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'gifted-check-btn';
           btn.textContent = fmtNum(choice);
           btn.addEventListener('click', () => {
-            if (answered) return;
-            answered = true;
-            const isCorrect = choice === selfCheck.answer;
-            const allBtns = [...selfCheckChoices.children];
-            allBtns.forEach((b) => {
-              b.disabled = true;
-              if (b !== btn) b.classList.add('dim');
-            });
-            btn.classList.add(isCorrect ? 'correct' : 'wrong');
-            if (!isCorrect) {
-              allBtns.forEach((b) => {
-                if (Number(b.textContent.replace(',', '.')) === selfCheck.answer) b.classList.add('correct');
-              });
-            }
-            const r = btn.getBoundingClientRect();
-            burstParticles(r.left + r.width / 2, r.top + r.height / 2, isCorrect ? 'var(--ok)' : 'var(--bad)', isCorrect ? 12 : 6);
-            if (isCorrect) sfx.correct(); else sfx.wrong();
-            setTimeout(unlockSolution, 950);
+            if (graded) return;
+            sfx.click();
+            selected = { btn, choice };
+            [...selfCheckChoices.children].forEach((b) => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            confirmBtn.disabled = false;
           });
           selfCheckChoices.appendChild(btn);
         });
+        confirmBtn.hidden = false;
+        confirmBtn.disabled = true;
+        confirmBtn.onclick = () => {
+          if (graded || !selected) return;
+          graded = true;
+          sfx.click();
+          const isCorrect = selected.choice === selfCheck.answer;
+          const allBtns = [...selfCheckChoices.children];
+          allBtns.forEach((b) => {
+            b.disabled = true;
+            if (b !== selected.btn) b.classList.add('dim');
+          });
+          selected.btn.classList.remove('selected');
+          selected.btn.classList.add(isCorrect ? 'correct' : 'wrong');
+          if (!isCorrect) {
+            allBtns.forEach((b) => {
+              if (Number(b.textContent.replace(',', '.')) === selfCheck.answer) b.classList.add('correct');
+            });
+          }
+          confirmBtn.hidden = true;
+          const r = selected.btn.getBoundingClientRect();
+          burstParticles(r.left + r.width / 2, r.top + r.height / 2, isCorrect ? 'var(--ok)' : 'var(--bad)', isCorrect ? 12 : 6);
+          if (isCorrect) {
+            sfx.correct();
+            giftedScore += 10;
+            giftedStreak += 1;
+          } else {
+            sfx.wrong();
+            giftedStreak = 0;
+          }
+          scoreVal.textContent = giftedScore;
+          streakVal.textContent = giftedStreak;
+          setTimeout(unlockSolution, 950);
+        };
       }
 
       learnBtn.addEventListener('click', () => {
@@ -1267,7 +1860,7 @@
         paintStep();
       });
 
-      nextBtn.addEventListener('click', () => {
+      nextStepBtn.addEventListener('click', () => {
         sfx.click();
         if (stepIdx < steps.length - 1) {
           stepIdx += 1;
@@ -1289,17 +1882,27 @@
         const willShow = solutionEl.hidden;
         solutionEl.hidden = !willShow;
         revealBtn.textContent = willShow ? 'Ẩn lời giải' : 'Xem lời giải';
-        if (willShow) {
-          doneBadge.hidden = false;
-          if (giftedMarkDone(grade, i)) updateProgress();
-        }
       });
 
-      giftedProblemList.appendChild(card);
-    });
+      nextProblemBtn.addEventListener('click', () => {
+        sfx.click();
+        loadNextProblem();
+        cardHolder.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      });
+
+      cardHolder.appendChild(card);
+    }
+
+    loadNextProblem();
   }
 
   giftedGradeRow.addEventListener('click', (e) => {
+    const btn = e.target.closest('.grade-card');
+    if (!btn) return;
+    sfx.click();
+    giftedRenderProblems(parseInt(btn.dataset.grade, 10));
+  });
+  giftedGradeRowTHCS.addEventListener('click', (e) => {
     const btn = e.target.closest('.grade-card');
     if (!btn) return;
     sfx.click();
@@ -1312,12 +1915,344 @@
     else showScreen('home');
   });
 
+  /* ================= THÁCH ĐẤU (đấu trường 1v1 / 2v2 thời gian thực) =============
+   * Ghép cặp + tính điểm hoàn toàn ở server (services/battleSocket.js bên
+   * dinh-thi-ai) qua Socket.IO — client ở đây chỉ hiển thị và gửi lựa chọn,
+   * không tự chấm điểm, không biết đáp án đúng trước khi bấm. Xem
+   * services/battleProblemService.js cho việc sinh đề (lớp 1-9). 1v1 ghép
+   * ngẫu nhiên qua hàng đợi; 2v2 theo phòng (mã 4 số, mời bạn bè) — cả hai
+   * dùng chung một "trận đấu theo đội" ở server (1v1 = đội 1 người). */
+  const battleNameInput = $('battleNameInput');
+  const battleModeTabs = $('battleModeTabs');
+  const battleGradeRowTH = $('battleGradeRowTH');
+  const battleGradeRowTHCS = $('battleGradeRowTHCS');
+  const btnBattleFind = $('btnBattleFind');
+  const battle2v2Choice = $('battle2v2Choice');
+  const battleRoomDivider = $('battleRoomDivider');
+  const btnBattleCreateRoom = $('btnBattleCreateRoom');
+  const battleRoomCodeInput = $('battleRoomCodeInput');
+  const btnBattleJoinRoom = $('btnBattleJoinRoom');
+  const battleSetupWrap = $('battleSetupWrap');
+  const battleQueueWrap = $('battleQueueWrap');
+  const battleQueueText = $('battleQueueText');
+  const battleRoomCodeDisplay = $('battleRoomCodeDisplay');
+  const battleRoomCodeValue = $('battleRoomCodeValue');
+  const battleRoomMembers = $('battleRoomMembers');
+  const btnBattleCancelQueue = $('btnBattleCancelQueue');
+  const battleQuestionText = $('battleQuestionText');
+  const battleAnswersGrid = $('battleAnswersGrid');
+  const battleMeScoreEl = $('battleMeScore');
+  const battleOppScoreEl = $('battleOppScore');
+  const battleMeNameEl = $('battleMeName');
+  const battleOppNameEl = $('battleOppName');
+  const battleTimerEl = $('battleTimer');
+  const battleMeFillEl = $('battleMeFill');
+  const battleOppFillEl = $('battleOppFill');
+
+  let battleSocket = null;
+  let battleMode = '1v1';
+  let battleSelectedGrade = null;
+  let battleInQueue = false;
+  let battleRoomCode = null;
+  let battleMyTeam = 0;
+  let battleCurrentMatch = null; // { matchId, problems, index, timerId }
+
+  battleNameInput.value = localStorage.getItem('tvc_playerName') || '';
+
+  function battleGetSocket() {
+    if (battleSocket) return battleSocket;
+    if (typeof io !== 'function') return null;
+    battleSocket = io({ path: '/socket.io/' });
+    battleSocket.on('match:found', battleOnMatchFound);
+    battleSocket.on('match:teamsProgress', battleOnTeamsProgress);
+    battleSocket.on('match:end', battleOnMatchEnd);
+    battleSocket.on('room:update', battleOnRoomUpdate);
+    return battleSocket;
+  }
+
+  battleModeTabs.addEventListener('click', (e) => {
+    const btn = e.target.closest('.battle-mode-tab');
+    if (!btn) return;
+    sfx.click();
+    battleMode = btn.dataset.mode;
+    [...battleModeTabs.children].forEach((c) => c.classList.remove('selected'));
+    btn.classList.add('selected');
+    btnBattleFind.hidden = battleMode !== '1v1';
+    // Phòng theo mã dùng được cho CẢ 1v1 lẫn 2v2 (bạn ngồi cạnh nhau tự
+    // ghép, không cần ghép ngẫu nhiên) — battle2v2Choice luôn hiện; chỉ ẩn
+    // dòng chữ "hoặc..." ở 2v2 vì lúc đó không có nút "Tìm đối thủ" ở trên
+    // để chữ "hoặc" có nghĩa.
+    battleRoomDivider.hidden = battleMode !== '1v1';
+  });
+
+  function battleSelectGrade(grade, btn) {
+    battleSelectedGrade = grade;
+    [...battleGradeRowTH.children, ...battleGradeRowTHCS.children].forEach((c) => c.classList.remove('selected'));
+    btn.classList.add('selected');
+    btnBattleFind.disabled = false;
+    btnBattleCreateRoom.disabled = false;
+  }
+  battleGradeRowTH.addEventListener('click', (e) => {
+    const btn = e.target.closest('.grade-card');
+    if (!btn) return;
+    sfx.click();
+    battleSelectGrade(parseInt(btn.dataset.grade, 10), btn);
+  });
+  battleGradeRowTHCS.addEventListener('click', (e) => {
+    const btn = e.target.closest('.grade-card');
+    if (!btn) return;
+    sfx.click();
+    battleSelectGrade(parseInt(btn.dataset.grade, 10), btn);
+  });
+  battleRoomCodeInput.addEventListener('input', () => {
+    battleRoomCodeInput.value = battleRoomCodeInput.value.replace(/\D/g, '').slice(0, 4);
+    btnBattleJoinRoom.disabled = battleRoomCodeInput.value.length !== 4;
+  });
+
+  function battleShowSetup() {
+    battleSelectedGrade = null;
+    btnBattleFind.disabled = true;
+    btnBattleCreateRoom.disabled = true;
+    btnBattleJoinRoom.disabled = true;
+    battleRoomCodeInput.value = '';
+    battleSetupWrap.hidden = false;
+    battleQueueWrap.hidden = true;
+    battleRoomCodeDisplay.hidden = true;
+    battleRoomMembers.hidden = true;
+    [...battleGradeRowTH.children, ...battleGradeRowTHCS.children].forEach((c) => c.classList.remove('selected'));
+  }
+  $('btnBattle').addEventListener('click', () => { sfx.click(); battleShowSetup(); showScreen('battleSetup'); });
+  $('btnBattleBack').addEventListener('click', () => { sfx.click(); battleLeaveQueue(); showScreen('home'); });
+
+  function battleLeaveQueue() {
+    if (battleInQueue && battleSocket) battleSocket.emit('queue:leave');
+    if (battleRoomCode && battleSocket) battleSocket.emit('room:leave');
+    battleInQueue = false;
+    battleRoomCode = null;
+  }
+  btnBattleCancelQueue.addEventListener('click', () => {
+    sfx.click();
+    battleLeaveQueue();
+    battleQueueWrap.hidden = true;
+    battleSetupWrap.hidden = false;
+  });
+
+  function battleReadName() {
+    const name = (battleNameInput.value || '').trim().slice(0, 24) || 'Bạn chơi';
+    localStorage.setItem('tvc_playerName', name);
+    return name;
+  }
+
+  btnBattleFind.addEventListener('click', () => {
+    if (!battleSelectedGrade) return;
+    sfx.click();
+    const name = battleReadName();
+    const socket = battleGetSocket();
+    if (!socket) return; // trình duyệt chặn được socket.io.js — hiếm, im lặng bỏ qua
+    battleSetupWrap.hidden = true;
+    battleQueueWrap.hidden = false;
+    battleQueueText.textContent = 'Đang tìm đối thủ cùng lớp...';
+    battleInQueue = true;
+    socket.emit('queue:join', { installId: webGetInstallId(), displayName: name, grade: battleSelectedGrade }, (ack) => {
+      if (!ack || !ack.ok) { battleInQueue = false; battleShowSetup(); }
+    });
+  });
+
+  btnBattleCreateRoom.addEventListener('click', () => {
+    if (!battleSelectedGrade) return;
+    sfx.click();
+    const name = battleReadName();
+    const socket = battleGetSocket();
+    if (!socket) return;
+    battleSetupWrap.hidden = true;
+    battleQueueWrap.hidden = false;
+    battleQueueText.textContent = 'Đang tạo phòng...';
+    socket.emit('room:create', { installId: webGetInstallId(), displayName: name, grade: battleSelectedGrade, mode: battleMode }, (ack) => {
+      if (!ack || !ack.ok) { battleShowSetup(); return; }
+      battleRoomCode = ack.code;
+      battleRoomCodeDisplay.hidden = false;
+      battleRoomCodeValue.textContent = ack.code;
+      battleRoomMembers.hidden = false;
+      battleQueueText.textContent = battleMode === '1v1' ? 'Gửi mã này cho 1 bạn để đấu 1v1 nhé!' : 'Gửi mã này cho 3 bạn để cùng đấu 2v2 nhé!';
+    });
+  });
+
+  btnBattleJoinRoom.addEventListener('click', () => {
+    const code = battleRoomCodeInput.value;
+    if (code.length !== 4) return;
+    sfx.click();
+    const name = battleReadName();
+    const socket = battleGetSocket();
+    if (!socket) return;
+    battleSetupWrap.hidden = true;
+    battleQueueWrap.hidden = false;
+    battleQueueText.textContent = 'Đang vào phòng...';
+    socket.emit('room:join', { installId: webGetInstallId(), displayName: name, code }, (ack) => {
+      if (!ack || !ack.ok) { battleShowSetup(); return; }
+      battleRoomCode = ack.code;
+      battleRoomCodeDisplay.hidden = false;
+      battleRoomCodeValue.textContent = ack.code;
+      battleRoomMembers.hidden = false;
+    });
+  });
+
+  function battleOnRoomUpdate(data) {
+    battleRoomCodeValue.textContent = data.code;
+    battleRoomMembers.innerHTML = '';
+    data.members.forEach((m) => {
+      const row = document.createElement('div');
+      row.className = 'battle-room-member';
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = m.displayName;
+      const tagSpan = document.createElement('span');
+      tagSpan.className = 'team-tag t' + m.team;
+      tagSpan.textContent = 'Đội ' + (m.team + 1);
+      row.appendChild(nameSpan);
+      row.appendChild(tagSpan);
+      battleRoomMembers.appendChild(row);
+    });
+    battleQueueText.textContent = `Đang đợi bạn bè... (${data.members.length}/${data.capacity})`;
+  }
+
+  function battleOnMatchFound(data) {
+    battleInQueue = false;
+    battleRoomCode = null;
+    battleMyTeam = data.me.team;
+    battleCurrentMatch = { matchId: data.matchId, problems: data.problems, index: 0, timerId: null };
+    if (data.mode === '2v2') {
+      battleMeNameEl.textContent = 'Đội bạn' + (data.teammates && data.teammates[0] ? ' + ' + data.teammates[0] : '');
+      battleOppNameEl.textContent = 'Đội đối thủ' + (data.opponents && data.opponents.length ? ': ' + data.opponents.join(', ') : '');
+    } else {
+      battleMeNameEl.textContent = data.me.displayName;
+      battleOppNameEl.textContent = (data.opponents && data.opponents[0]) || 'Đối thủ';
+    }
+    battleMeScoreEl.textContent = '0';
+    battleOppScoreEl.textContent = '0';
+    battleMeFillEl.style.width = '0%';
+    battleOppFillEl.style.width = '0%';
+    showScreen('battleLive');
+    battleStartTimer(data.durationMs);
+    battleRenderQuestion();
+  }
+
+  function battleStartTimer(durationMs) {
+    const endsAt = Date.now() + durationMs;
+    const m = battleCurrentMatch;
+    clearInterval(m.timerId);
+    const tick = () => {
+      const left = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+      battleTimerEl.textContent = left;
+      if (left <= 0) clearInterval(m.timerId);
+    };
+    tick();
+    m.timerId = setInterval(tick, 250);
+  }
+
+  function battleRenderQuestion() {
+    const m = battleCurrentMatch;
+    if (!m || m.index >= m.problems.length) return;
+    const p = m.problems[m.index];
+    battleQuestionText.textContent = p.text;
+    battleAnswersGrid.innerHTML = '';
+    p.choices.forEach((choice, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'answer-btn reveal';
+      btn.style.animationDelay = (i * 60) + 'ms';
+      btn.textContent = fmtNum(choice);
+      btn.addEventListener('click', () => battleSubmitAnswer(choice, btn));
+      battleAnswersGrid.appendChild(btn);
+    });
+  }
+
+  function battleSubmitAnswer(value, btn) {
+    const m = battleCurrentMatch;
+    if (!m || !battleSocket) return;
+    [...battleAnswersGrid.children].forEach((b) => { b.disabled = true; });
+    battleSocket.emit('answer:submit', { index: m.index, value }, (ack) => {
+      if (!ack || !ack.ok) { [...battleAnswersGrid.children].forEach((b) => { b.disabled = false; }); return; }
+      btn.classList.add(ack.correct ? 'correct' : 'wrong');
+      sfx[ack.correct ? 'correct' : 'wrong']();
+      m.index = ack.nextIndex;
+      // Điểm hiển thị (kể cả của chính mình) lấy từ match:teamsProgress —
+      // đó mới là tổng điểm CẢ ĐỘI (2v2 có 2 người cùng ghi điểm), ack ở
+      // đây chỉ dùng để biết đúng/sai và chuyển câu tiếp theo.
+      setTimeout(battleRenderQuestion, ack.correct ? 450 : 850);
+    });
+  }
+
+  function battleOnTeamsProgress(data) {
+    const otherTeam = battleMyTeam === 0 ? 1 : 0;
+    battleMeScoreEl.textContent = data.totals[battleMyTeam] || 0;
+    battleOppScoreEl.textContent = data.totals[otherTeam] || 0;
+    if (battleCurrentMatch) {
+      const pct = Math.min(100, Math.round((data.doneIndex / battleCurrentMatch.problems.length) * 100));
+      if (data.byTeam === battleMyTeam) battleMeFillEl.style.width = pct + '%';
+      else battleOppFillEl.style.width = pct + '%';
+    }
+  }
+
+  function battleOnMatchEnd(data) {
+    const m = battleCurrentMatch;
+    if (m && m.timerId) clearInterval(m.timerId);
+    battleCurrentMatch = null;
+    const titleEl = $('battleResultTitle');
+    titleEl.className = 'battle-result-title';
+    if (data.outcome === 'win') { titleEl.textContent = 'Thắng rồi! 🎉'; sfx.win(); }
+    else if (data.outcome === 'lose') { titleEl.textContent = 'Thua rồi, cố lên nhé!'; titleEl.classList.add('lose'); }
+    else { titleEl.textContent = 'Hòa!'; titleEl.classList.add('draw'); }
+    $('battleResultScores').textContent = `Bạn ${data.myScore} — ${data.opponentScore} Đối thủ`;
+    const rewardsEl = $('battleResultRewards');
+    rewardsEl.innerHTML = '';
+    const chip = (text) => { const s = document.createElement('span'); s.textContent = text; rewardsEl.appendChild(s); };
+    if (data.rankDelta != null) chip((data.rankDelta >= 0 ? '+' : '') + data.rankDelta + ' điểm rank');
+    if (data.coinsDelta != null) chip('+' + data.coinsDelta + ' Xu Mon');
+    if (data.tierName) chip('Bậc: ' + data.tierName);
+    showScreen('battleResult');
+  }
+
+  $('btnBattlePlayAgain').addEventListener('click', () => { sfx.click(); battleShowSetup(); showScreen('battleSetup'); });
+  $('btnBattleResultHome').addEventListener('click', () => { sfx.click(); showScreen('home'); });
+
   /* ================= SETUP ================= */
   const gradeRow = $('gradeRow');
+  const gradeRowTHCS = $('gradeRowTHCS');
   const opRow = $('opRow');
+  const opWordCard = opRow.querySelector('[data-op="word"]');
   const modeRow = $('modeRow');
   const bestBox = $('bestScoreBox');
   const btnStart = $('btnStartGame');
+
+  /* Cấp 1 (lớp 1-5) / Cấp 2 (lớp 6-9) — lọc lớp + dạng bài hiển thị ở màn
+     hình "Bắt đầu chơi" theo cấp học đang chọn ở màn hình chính. Toán đố
+     (word) chưa có ngân hàng đề cho lớp 6-9 nên ẩn dạng này ở Cấp 2 để
+     tránh chọn nhầm vào dạng chưa có nội dung. */
+  const levelToggle = $('levelToggle');
+  let schoolLevel = localStorage.getItem('tvc_schoolLevel') === '2' ? '2' : '1';
+
+  function applySchoolLevel() {
+    [...levelToggle.children].forEach((b) => b.classList.toggle('selected', b.dataset.level === schoolLevel));
+    gradeRow.hidden = schoolLevel === '2';
+    gradeRowTHCS.hidden = schoolLevel === '1';
+    opWordCard.hidden = schoolLevel === '2';
+    if (state.grade && ((schoolLevel === '1' && state.grade > 5) || (schoolLevel === '2' && state.grade <= 5))) {
+      state.grade = null;
+      [...gradeRow.children, ...gradeRowTHCS.children].forEach((c) => c.classList.remove('selected'));
+    }
+    if (schoolLevel === '2' && state.op === 'word') {
+      state.op = null;
+      [...opRow.children].forEach((c) => c.classList.remove('selected'));
+    }
+    refreshBestBox();
+  }
+
+  levelToggle.addEventListener('click', (e) => {
+    const btn = e.target.closest('.level-btn');
+    if (!btn || btn.dataset.level === schoolLevel) return;
+    sfx.click();
+    schoolLevel = btn.dataset.level;
+    localStorage.setItem('tvc_schoolLevel', schoolLevel);
+    applySchoolLevel();
+  });
 
   function renderStars(container, count) {
     container.innerHTML = '';
@@ -1351,15 +2286,19 @@
     }
   }
 
-  gradeRow.addEventListener('click', (e) => {
+  function onGradeCardClick(e) {
     const btn = e.target.closest('.grade-card');
     if (!btn) return;
     sfx.click();
-    [...gradeRow.children].forEach(c => c.classList.remove('selected'));
+    [...gradeRow.children, ...gradeRowTHCS.children].forEach(c => c.classList.remove('selected'));
     btn.classList.add('selected');
     state.grade = parseInt(btn.dataset.grade, 10);
     refreshBestBox();
-  });
+  }
+  gradeRow.addEventListener('click', onGradeCardClick);
+  gradeRowTHCS.addEventListener('click', onGradeCardClick);
+
+  applySchoolLevel();
 
   opRow.addEventListener('click', (e) => {
     const btn = e.target.closest('.op-card');
@@ -3100,132 +4039,79 @@
     window.addEventListener('resize', fitCallScene);
     window.addEventListener('orientationchange', () => setTimeout(fitCallScene, 120));
 
-    // Video thật của Mon (assets/monl/mon-noi.mp4) — quay sẵn cùng cảnh
-    // phòng mon-room.jpg, ported từ app tiếng Anh (dùng chung đúng file đó).
-    // Tải được thì thay hẳn ảnh phòng tĩnh + .call-mon; không tải được (mạng
-    // yếu, trình duyệt cũ) thì im lặng bỏ qua, lớp ảnh tĩnh + miệng ghép sẵn
-    // vẫn chạy y như trước — không có gì vỡ.
+    // Chỉ dùng MỘT video thật của Mon (mon-noi.mp4) — nhưng dùng cho CẢ
+    // hai trạng thái nói/im lặng, không quay lại lớp ảnh tĩnh ghép sẵn
+    // (mon-closed.png/mon-mouth.png) nữa vì đó là nhân vật thiết kế cũ,
+    // không còn khớp bộ nhận diện mới. Video tải xong là hiện lên và Ở
+    // NGUYÊN đó suốt cuộc gọi — lúc nói thì phát, lúc im lặng thì dừng lại
+    // (đứng ở khung hình gần đầu video), không ẩn/hiện qua lại giữa video
+    // và ảnh tĩnh nữa.
     const CALL_VIDEO_SRC = 'assets/monl/mon-noi.mp4';
-    // Giây đứng yên trong video: đầu video Mon đang há miệng to, tay buông
-    // thõng — dừng ở giây 2,083 (khung 50) là lúc miệng ngậm, mắt mở, tay
-    // đưa ra chào. Cùng con số với app tiếng Anh vì dùng chung một file.
-    const CALL_VIDEO_HOLD = 2.083;
     let callVideoTried = false;
     let callVideoOk = false;
-    let callVideoGuarded = false;
     let callVideoTalking = false;
-    let callVideoRetryId = null;
-    let callVideoHoldHandler = null;
-    let callVideoLoopHandler = null;
-    // Sau lần đầu tiên video đã thật sự PHÁT (không còn ở giây 0 tinh),
-    // set currentTime thẳng ăn chắc luôn — chỉ lần đầu tiên (video chưa
-    // từng phát) mới cần "mẹo" chạy nhanh rồi phanh ở dưới.
-    let callVideoEverPlayed = false;
 
     function callProbeVideo() {
       if (callVideoTried || !callVidEl) return;
       callVideoTried = true;
-      const probe = document.createElement('video');
-      probe.muted = true;
-      probe.preload = 'metadata';
-      probe.addEventListener('loadedmetadata', () => { callVideoOk = true; callActivateVideo(); }, { once: true });
-      probe.addEventListener('error', () => {}, { once: true });
-      probe.src = CALL_VIDEO_SRC;
+      callVidEl.addEventListener('loadedmetadata', () => {
+        callVideoOk = true;
+        sceneFitEl.classList.add('co-video');
+        callVidEl.hidden = false;
+        // Phát một nhịp rồi dừng ngay để có sẵn một khung hình hiện ra —
+        // set currentTime thẳng trên video CHƯA từng phát bị một số trình
+        // duyệt âm thầm bỏ qua (đo được lúc build), play() rồi pause() thì
+        // luôn ăn chắc.
+        callVidEl.classList.toggle('dung-yen', !callVideoTalking);
+        callVidEl.play().then(() => { if (!callVideoTalking) callVidEl.pause(); }).catch(() => {});
+      }, { once: true });
+      callVidEl.addEventListener('error', () => {}, { once: true });
+      callVidEl.src = CALL_VIDEO_SRC;
+      callGuardVideo(callVidEl);
+      callLoopSmoothly(callVidEl);
     }
+    // Trình duyệt tự DỪNG video khi vòng lại về đầu thay vì loop mượt —
+    // đo trên máy thật: video dài ngắn hơn câu nói thì Mon đứng há mồm im
+    // re giữa câu nếu không tự canh mà phát tiếp. Chỉ phát lại khi ĐANG ở
+    // lượt nói — dừng lúc im lặng là chủ ý, không phải sự cố cần cứu.
     function callGuardVideo(v) {
-      if (callVideoGuarded) return;
-      callVideoGuarded = true;
-      // Trình duyệt tự DỪNG video khi vòng lại về đầu thay vì loop mượt —
-      // đo trên máy thật: video dài ngắn hơn câu nói thì Mon đứng há mồm
-      // im re giữa câu nếu không tự canh mà phát tiếp.
-      v.addEventListener('pause', () => { if (callVideoTalking) v.play().catch(() => {}); });
+      v.addEventListener('pause', () => { if (callVideoTalking && !callEnded) v.play().catch(() => {}); });
       v.addEventListener('ended', () => {
-        if (!callVideoTalking) return;
+        if (!callVideoTalking || callEnded) return;
         try { v.currentTime = 0.04; } catch (e) {}
         v.play().catch(() => {});
       });
     }
-    function callActivateVideo() {
-      if (!callVideoOk || !callVidEl) return;
-      callGuardVideo(callVidEl);
-      sceneFitEl.classList.add('co-video');
-      callVidEl.hidden = false;
-      callVidEl.src = CALL_VIDEO_SRC;
-      callSetVideoTalking(false);
-    }
-    // Chuyển video giữa "đang nói" (loop liên tục) và "đứng yên" (dừng cứng
-    // ở khung miệng ngậm, chỉ còn nhịp thở rất nhẹ do CSS — dừng trơ ra thì
-    // trông như ảnh chụp bị đơ).
-    //
-    // Set currentTime thẳng trên video CHƯA từng phát bị một số trình duyệt
-    // (đo được ngay trong lúc build) âm thầm bỏ qua — không lỗi, không sự
-    // kiện gì, cứ đứng nguyên ở giây 0. Cho phát thật một nhịp rồi dừng
-    // ĐÚNG LÚC bằng timeupdate thì luôn ăn chắc, nên dùng cách đó thay vì
-    // tua thẳng: tăng playbackRate cho đoạn chạy tới rất nhanh (không kịp
-    // giật hình), dừng lại ngay khi chạm khung cần giữ.
-    function callSetVideoTalking(talking) {
-      if (!callVideoOk || !callVidEl || callVidEl.hidden) return;
-      clearInterval(callVideoRetryId); callVideoRetryId = null;
-      if (callVideoHoldHandler) { callVidEl.removeEventListener('timeupdate', callVideoHoldHandler); callVideoHoldHandler = null; }
-      if (callVideoLoopHandler) { callVidEl.removeEventListener('timeupdate', callVideoLoopHandler); callVideoLoopHandler = null; }
-      if (!talking) {
-        callVidEl.classList.add('dung-yen');
-        callVideoTalking = false;
-        callVidEl.loop = false;
-        // Video đã phát ít nhất 1 lần rồi thì tua thẳng ăn chắc, không cần
-        // "mẹo" chạy nhanh (playbackRate=16) rồi phanh gấp nữa — cách đó
-        // nhìn giật vì lặp lại mỗi lần Mon nói xong MỘT câu trong cả cuộc.
-        if (callVideoEverPlayed) {
-          callVidEl.pause();
-          try { callVidEl.currentTime = CALL_VIDEO_HOLD; } catch (e) {}
-          callVidEl.playbackRate = 1;
-          return;
-        }
-        // Lần đầu tiên (video chưa từng phát): set currentTime thẳng không
-        // ăn ở một số trình duyệt (đo được lúc build) — phải chạy nhanh rồi
-        // phanh đúng lúc bằng timeupdate thì mới ăn chắc.
-        if (callVidEl.currentTime > CALL_VIDEO_HOLD + 0.05) { try { callVidEl.currentTime = 0; } catch (e) {} }
-        callVidEl.playbackRate = 16;
-        callVideoHoldHandler = () => {
-          if (callVidEl.currentTime >= CALL_VIDEO_HOLD) {
-            callVidEl.pause();
-            callVidEl.playbackRate = 1;
-            callVidEl.removeEventListener('timeupdate', callVideoHoldHandler);
-            callVideoHoldHandler = null;
-          }
-        };
-        callVidEl.addEventListener('timeupdate', callVideoHoldHandler);
-        callVidEl.play().catch(() => {});
-        // Dự phòng cho trình duyệt không bắn timeupdate đều đặn: tự dừng
-        // cứng trong nửa giây — vẫn còn hơn kẹt chạy mãi hoặc đứng ở giây 0.
-        let tries = 0;
-        callVideoRetryId = setInterval(() => {
-          if (callVidEl.paused || ++tries > 10) { clearInterval(callVideoRetryId); callVideoRetryId = null; return; }
-          if (callVidEl.currentTime >= CALL_VIDEO_HOLD) { callVidEl.pause(); callVidEl.playbackRate = 1; }
-        }, 60);
-        return;
-      }
-      callVidEl.classList.remove('dung-yen');
-      callVidEl.playbackRate = 1;
-      callVideoTalking = true;
-      callVideoEverPlayed = true;
-      // KHÔNG dùng loop=true gốc của trình duyệt — nhiều trình duyệt tự
-      // DỪNG video khi chạy hết rồi mới lặp lại, gây khựng hình rõ rệt mỗi
-      // lần lặp (8 giây/lần với câu nói dài). Tự canh gần hết video rồi
-      // tua ngược về đầu bằng tay (timeupdate) thì mượt hơn hẳn.
-      callVidEl.loop = false;
-      callVideoLoopHandler = () => {
+    // KHÔNG dùng loop=true gốc của trình duyệt — nhiều trình duyệt tự DỪNG
+    // video khi chạy hết rồi mới lặp lại, gây khựng hình rõ rệt mỗi lần lặp
+    // (15 giây/lần với video này). Tự canh gần hết video rồi tua ngược về
+    // đầu bằng tay (timeupdate) thì mượt hơn hẳn.
+    function callLoopSmoothly(v) {
+      v.loop = false;
+      v.addEventListener('timeupdate', () => {
         if (!callVideoTalking) return;
-        const dur = callVidEl.duration || 8;
-        if (callVidEl.currentTime >= dur - 0.15) {
-          try { callVidEl.currentTime = 0.05; } catch (e) {}
-        }
-      };
-      callVidEl.addEventListener('timeupdate', callVideoLoopHandler);
-      callVidEl.play().catch(() => {});
+        const dur = v.duration || 15;
+        if (v.currentTime >= dur - 0.15) { try { v.currentTime = 0.05; } catch (e) {} }
+      });
+    }
+    function callSetVideoTalking(talking) {
+      callVideoTalking = talking;
+      if (!callVideoOk) return;
+      callVidEl.classList.toggle('dung-yen', !talking);
+      if (talking) callVidEl.play().catch(() => {});
+      else callVidEl.pause();
     }
 
     const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    // Trên web, "nghe" dùng Web Speech API của trình duyệt (SpeechRecognitionCtor
+    // ở trên) — Chrome/Android hỗ trợ tốt, nhưng Safari/iOS thì KHÔNG BAO GIỜ
+    // hỗ trợ, dù có đóng gói app kiểu gì đi nữa (giới hạn của WebKit, không
+    // phải lỗi code). Khi chạy trong app native (Capacitor) thì dùng thẳng bộ
+    // nhận diện giọng nói CỦA MÁY (iOS Speech framework / Android
+    // SpeechRecognizer) qua plugin @capacitor-community/speech-recognition —
+    // cái này CÓ hoạt động trên iPhone, vì không phụ thuộc WebKit nữa.
+    const CapSR = (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()
+      && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) || null;
     let callRecognition = null;
     let callHistory = [];
     // Đáp án đúng (số, đã máy chủ tính ra) của bài toán Mon vừa ra, hoặc
@@ -3235,7 +4121,7 @@
     let callSeconds = 0;
     let callBusy = false;
     let callEnded = true;
-    let callTypedOnly = !SpeechRecognitionCtor;
+    let callTypedOnly = !SpeechRecognitionCtor && !CapSR;
 
     // Mon nói được ba thứ tiếng — bạn học không chọn trước, cứ nói, server
     // (boomChatService.js) tự nghe ra rồi trả lời đúng thứ tiếng đó, client
@@ -3384,7 +4270,15 @@
         callSetState('Đến lượt cậu rồi đó!');
         callAutoListenIfPossible();
       };
-      watchdogId = setTimeout(finishSpeak, 2000 + text.length * 130);
+      // Chẻ theo câu nghĩa là TỔNG thời gian nói = thời gian nói của từng
+      // câu CỘNG các khoảng ngắt hơi giữa câu — canh sát theo mỗi ký tự
+      // như một utterance duy nhất thì không đủ dư cho câu dài nhiều câu
+      // (nhiều khoảng ngắt cộng dồn), dễ tự cắt lời Mon giữa chừng đúng
+      // như trần cứng 12 giây hồi trước. Canh RẤT dư — watchdog chỉ là
+      // lưới đỡ khi trình duyệt "nuốt" utterance chứ không phải mốc canh
+      // chính xác, onend của câu cuối luôn tới trước nếu TTS chạy bình
+      // thường.
+      watchdogId = setTimeout(finishSpeak, 4000 + text.length * 220);
       chunks.forEach((chunk, i) => {
         const utter = new SpeechSynthesisUtterance(chunk);
         utter.lang = L.tts;
@@ -3428,7 +4322,7 @@
         callMascotEl.classList.remove('talking');
         callSetVideoTalking(false);
       };
-      watchdogId = setTimeout(finishReplay, 2000 + text.length * 130);
+      watchdogId = setTimeout(finishReplay, 4000 + text.length * 220);
       chunks.forEach((chunk, i) => {
         const utter = new SpeechSynthesisUtterance(chunk);
         utter.lang = L.tts;
@@ -3480,32 +4374,49 @@
       }
     }
 
-    function callStartListening() {
-      if (!SpeechRecognitionCtor || callBusy || callEnded || callTypedOnly) return;
+    function callListenUIStart() {
+      callYou.hidden = false;
+      btnMic.classList.add('on');
+      callMascotEl.classList.add('listening');
+      callSetState('Đang nghe cậu nói…');
+    }
+    function callListenUIEnd() {
+      callYou.hidden = true;
+      btnMic.classList.remove('on');
+      callMascotEl.classList.remove('listening');
+    }
+    function callHandleHeard(text) {
+      if (!text) return;
+      callHeardText.textContent = `Cậu: "${text}"`;
+      callHeard.hidden = false;
+      callAsk(text);
+    }
+    function callStartListeningNative() {
+      const lg = CALL_NO_LISTEN[callLang] ? 'vi' : callLang;
+      const langTag = (CALL_LANGS[lg] || CALL_LANGS.vi).sr;
+      callListenUIStart();
+      CapSR.start({ language: langTag, maxResults: 1, partialResults: false, popup: false })
+        .then((res) => {
+          callListenUIEnd();
+          const text = ((res && res.matches && res.matches[0]) || '').trim();
+          callHandleHeard(text);
+        })
+        .catch(() => {
+          callListenUIEnd();
+          if (!callBusy) callSetState('Không nghe rõ, bấm mic để nói lại nhé.');
+        });
+    }
+    function callStartListeningWeb() {
       try {
         callRecognition = new SpeechRecognitionCtor();
         const lg = CALL_NO_LISTEN[callLang] ? 'vi' : callLang;
         callRecognition.lang = (CALL_LANGS[lg] || CALL_LANGS.vi).sr;
         callRecognition.interimResults = false;
         callRecognition.maxAlternatives = 1;
-        callRecognition.onstart = () => {
-          callYou.hidden = false;
-          btnMic.classList.add('on');
-          callMascotEl.classList.add('listening');
-          callSetState('Đang nghe cậu nói…');
-        };
-        callRecognition.onresult = (ev) => {
-          const text = ev.results[0][0].transcript.trim();
-          if (text) {
-            callHeardText.textContent = `Cậu: "${text}"`;
-            callHeard.hidden = false;
-            callAsk(text);
-          }
-        };
+        callRecognition.onstart = callListenUIStart;
+        callRecognition.onresult = (ev) => callHandleHeard(ev.results[0][0].transcript.trim());
         callRecognition.onerror = (ev) => {
-          callYou.hidden = true;
-          btnMic.classList.remove('on');
-          callMascotEl.classList.remove('listening');
+          callListenUIEnd();
           // Máy không nghe được thứ tiếng đang chọn thì lùi về tiếng Việt rồi
           // nghe lại ngay, đừng bắt bạn học tự xoay xở với lỗi khó hiểu.
           if (ev.error === 'language-not-supported' && callLang !== 'vi') {
@@ -3516,19 +4427,22 @@
           }
           if (!callBusy) callSetState('Không nghe rõ, bấm mic để nói lại nhé.');
         };
-        callRecognition.onend = () => {
-          callYou.hidden = true;
-          btnMic.classList.remove('on');
-          callMascotEl.classList.remove('listening');
-        };
+        callRecognition.onend = callListenUIEnd;
         callRecognition.start();
       } catch (e) {}
     }
+    // Web (Chrome/Android) dùng Web Speech API của trình duyệt; app native
+    // (Capacitor, kể cả trên iPhone) dùng thẳng bộ nghe của máy qua CapSR —
+    // xem giải thích đầy đủ ở khai báo CapSR phía trên.
+    function callStartListening() {
+      if (callBusy || callEnded || callTypedOnly) return;
+      if (CapSR) callStartListeningNative();
+      else if (SpeechRecognitionCtor) callStartListeningWeb();
+    }
     function callStopListening() {
       if (callRecognition) { try { callRecognition.stop(); } catch (e) {} }
-      callYou.hidden = true;
-      btnMic.classList.remove('on');
-      callMascotEl.classList.remove('listening');
+      if (CapSR) { CapSR.stop().catch(() => {}); }
+      callListenUIEnd();
     }
     function callSwitchToTyped() {
       callTypedOnly = true;
@@ -3566,9 +4480,15 @@
       callSetState('Đang kết nối…');
       callProbeVideo();
       callStartTimer();
-      callTypedOnly = !SpeechRecognitionCtor;
+      callTypedOnly = !SpeechRecognitionCtor && !CapSR;
       btnMic.hidden = callTypedOnly;
       btnCallSkip.hidden = callTypedOnly;
+      // CapSR có mặt (đang chạy app native) không có nghĩa là máy đó chắc
+      // chắn nghe được — kiểm tra thật rồi mới quyết, không thì bấm mic vô
+      // ích mà chẳng có gì xảy ra.
+      if (!callTypedOnly && CapSR) {
+        CapSR.available().then((r) => { if (!r || !r.available) callSwitchToTyped(); }).catch(() => callSwitchToTyped());
+      }
       callType.hidden = !callTypedOnly;
       // Cảnh phòng cần layout đã ổn định (chiều cao thật của .call-top/
       // .call-foot) mới tính đúng được — đợi một khung hình rồi mới fit.
