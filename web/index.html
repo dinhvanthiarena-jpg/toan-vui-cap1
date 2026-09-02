@@ -501,12 +501,22 @@
   <section id="screen-battle-live" class="screen">
     <div class="battle-live-hud">
       <div class="battle-side battle-side-me">
+        <div class="battle-avatar" id="battleMeAvatar" aria-hidden="true">
+          <span class="battle-avatar-initial" id="battleMeAvatarInitial">B</span>
+          <span class="battle-online-dot" title="Đang online"></span>
+        </div>
         <span class="battle-name" id="battleMeName">Bạn</span>
+        <span class="battle-rank" id="battleMeRank" hidden></span>
         <span class="battle-score" id="battleMeScore">0</span>
       </div>
       <div class="battle-timer" id="battleTimer">90</div>
       <div class="battle-side battle-side-opp">
+        <div class="battle-avatar" id="battleOppAvatar" aria-hidden="true">
+          <span class="battle-avatar-initial" id="battleOppAvatarInitial">Đ</span>
+          <span class="battle-online-dot" title="Đang online"></span>
+        </div>
         <span class="battle-name" id="battleOppName">Đối thủ</span>
+        <span class="battle-rank" id="battleOppRank" hidden></span>
         <span class="battle-score" id="battleOppScore">0</span>
       </div>
     </div>

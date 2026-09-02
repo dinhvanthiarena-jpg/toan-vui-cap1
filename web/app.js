@@ -1945,9 +1945,29 @@
   const battleOppScoreEl = $('battleOppScore');
   const battleMeNameEl = $('battleMeName');
   const battleOppNameEl = $('battleOppName');
+  const battleMeRankEl = $('battleMeRank');
+  const battleOppRankEl = $('battleOppRank');
+  const battleMeAvatarInitial = $('battleMeAvatarInitial');
+  const battleOppAvatarInitial = $('battleOppAvatarInitial');
+  const battleMeAvatar = $('battleMeAvatar');
+  const battleOppAvatar = $('battleOppAvatar');
   const battleTimerEl = $('battleTimer');
   const battleMeFillEl = $('battleMeFill');
   const battleOppFillEl = $('battleOppFill');
+
+  // Avatar chữ cái đầu + màu theo hash — không có ảnh đại diện thật (không
+  // yêu cầu tài khoản/ảnh cho trẻ nhỏ), nhưng vẫn phân biệt được 2 người
+  // chơi kể cả khi cả hai đều để tên mặc định "Bạn chơi" giống hệt nhau.
+  const BATTLE_AVATAR_COLORS = ['var(--heart)', 'var(--flame)', 'var(--amber-fill)', 'var(--ok)', 'var(--g2)', 'var(--g3)', 'var(--g6)', 'var(--g7)', 'var(--g8)', 'var(--g9)'];
+  function battleAvatarColor(seed) {
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+    return BATTLE_AVATAR_COLORS[h % BATTLE_AVATAR_COLORS.length];
+  }
+  function battleSetAvatar(avatarEl, initialEl, seed, letter) {
+    initialEl.textContent = (letter || '?').trim().charAt(0).toUpperCase() || '?';
+    avatarEl.style.background = battleAvatarColor(seed || letter || 'x');
+  }
 
   let battleSocket = null;
   let battleMode = '1v1';
@@ -2120,11 +2140,22 @@
     battleMyTeam = data.me.team;
     battleCurrentMatch = { matchId: data.matchId, problems: data.problems, index: 0, timerId: null };
     if (data.mode === '2v2') {
-      battleMeNameEl.textContent = 'Đội bạn' + (data.teammates && data.teammates[0] ? ' + ' + data.teammates[0] : '');
-      battleOppNameEl.textContent = 'Đội đối thủ' + (data.opponents && data.opponents.length ? ': ' + data.opponents.join(', ') : '');
+      battleMeNameEl.textContent = 'Đội bạn' + (data.teammates && data.teammates[0] ? ' + ' + data.teammates[0].displayName : '');
+      battleOppNameEl.textContent = 'Đội đối thủ' + (data.opponents && data.opponents.length ? ': ' + data.opponents.map((o) => o.displayName).join(', ') : '');
+      battleSetAvatar(battleMeAvatar, battleMeAvatarInitial, 'team-me', 'Đ');
+      battleSetAvatar(battleOppAvatar, battleOppAvatarInitial, 'team-opp', 'Đ');
+      battleMeRankEl.hidden = true;
+      battleOppRankEl.hidden = true;
     } else {
+      const opp = (data.opponents && data.opponents[0]) || { displayName: 'Đối thủ', tierName: null, installId: 'opp' };
       battleMeNameEl.textContent = data.me.displayName;
-      battleOppNameEl.textContent = (data.opponents && data.opponents[0]) || 'Đối thủ';
+      battleOppNameEl.textContent = opp.displayName;
+      battleSetAvatar(battleMeAvatar, battleMeAvatarInitial, data.me.installId, data.me.displayName);
+      battleSetAvatar(battleOppAvatar, battleOppAvatarInitial, opp.installId, opp.displayName);
+      battleMeRankEl.hidden = !data.me.tierName;
+      battleMeRankEl.textContent = data.me.tierName || '';
+      battleOppRankEl.hidden = !opp.tierName;
+      battleOppRankEl.textContent = opp.tierName || '';
     }
     battleMeScoreEl.textContent = '0';
     battleOppScoreEl.textContent = '0';
