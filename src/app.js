@@ -144,10 +144,10 @@
     while (musicNextTime < c.currentTime + 0.2) {
       const stepInLoop = musicStep % MUSIC_MELODY.length;
       const offset = musicNextTime - c.currentTime;
-      tone(MUSIC_MELODY[stepInLoop], offset, MUSIC_STEP_DUR * 0.85, 'triangle', 0.05);
+      tone(MUSIC_MELODY[stepInLoop], offset, MUSIC_STEP_DUR * 0.85, 'triangle', 0.025);
       if (stepInLoop % 4 === 0) {
         const chord = MUSIC_CHORDS[(stepInLoop / 4) % MUSIC_CHORDS.length];
-        chord.forEach((f) => padTone(f, offset, MUSIC_CHORD_DUR, 0.028));
+        chord.forEach((f) => padTone(f, offset, MUSIC_CHORD_DUR, 0.014));
       }
       musicNextTime += MUSIC_STEP_DUR;
       musicStep++;
